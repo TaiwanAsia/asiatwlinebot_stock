@@ -1,0 +1,52 @@
+{
+    "type": "carousel",
+    "contents": [
+      {
+        "type": "bubble",
+        "size": "micro",
+        "direction": "ltr",
+        "header": {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "行程",
+              "align": "start",
+              "weight": "bold",
+              "size": "xxl",
+              "style": "normal",
+              "decoration": "none",
+              "gravity": "top"
+            }
+          ]
+        },
+        "body": {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "button",
+              "action": {
+                "type": "postback",
+                "label": "行程1",
+                "data": "activity"
+              }
+            }
+          ],
+          "spacing": "none",
+          "margin": "none",
+          "offsetBottom": "none",
+          "paddingBottom": "none"
+        },
+        "styles": {
+          "hero": {
+            "separator": true
+          },
+          "body": {
+            "separator": true
+          }
+        }
+      }
+    ]
+  }
