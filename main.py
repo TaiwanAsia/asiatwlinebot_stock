@@ -1,4 +1,5 @@
 from ast import If
+from base64 import encode
 from random import random
 from flask import Flask, request, abort
 from linebot import (
@@ -12,11 +13,15 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 import random, re, time, _thread
 from datetime import datetime, timedelta, timezone
-import json, requests, re
+import json, requests, pathlib, pyimgur
 # import plotly.graph_objects as go
 # import networkx as nx
-# from svglib.svglib import svg2rlg
-# from reportlab.graphics import renderPM
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPM
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
+import unicodedata
 
 
 app = Flask(__name__)
@@ -472,35 +477,106 @@ def handle_message(event):
         # 統編查詢公司關係
 
 
-        # 先用網址跑出svg
-
-        # 想辦法下載svg區塊
-
-        # # 將下載的svg轉成png
-        #     # 這裡要解決轉檔後中文變成亂碼: 編碼問題
-        # drawing = svg2rlg('companysocialnetwork.svg')
-        # renderPM.drawToFile(drawing, 'output/companysocialnetwork.png', fmt='PNG')
-
-        # # 上傳png到imgur
-
-        # # 丟出imgur網址
-        # image_message = ImageSendMessage(
-        #     original_content_url='https://images.builderservices.io/s/cdn/v1.0/i/m?url=https%3A%2F%2Fstorage.googleapis.com%2Fproduction-bluehost-v1-0-9%2F659%2F790659%2FAtmP8Pmy%2F9c8c1e647eb14e01898043c0c60bf03a&methods=resize%2C1000%2C5000',
-        #     preview_image_url='https://images.builderservices.io/s/cdn/v1.0/i/m?url=https%3A%2F%2Fstorage.googleapis.com%2Fproduction-bluehost-v1-0-9%2F659%2F790659%2FAtmP8Pmy%2Ffd2258c5ea6c43f591e8d9930d152b94&methods=resize%2C1000%2C5000'
-        # )
-        # line_bot_api.reply_message(reply_token, image_message)
 
 
 
-      
-        # url = requests.get("https://company-graph.g0v.ronny.tw/index/json?id={0}".format("22099131"))
+
+        # # 先用網址跑出svg
+
+        # # The webpage is rendered dynamically with Javascript, so you will need selenium to get the rendered page.
+
+        # url = "https://company-graph.g0v.ronny.tw/?id={0}".format("22099131")
+
+        # #發送 GET 請求到 url，並將回應物件放到 resp
+        # # resp = requests.get(url)
+
+        # from selenium import webdriver
+        # from selenium.webdriver.chrome.service import Service
+        # from webdriver_manager.chrome import ChromeDriverManager
+        # from selenium.webdriver.common.by import By
+
+        # s=Service(ChromeDriverManager().install())
+
+        # options = webdriver.ChromeOptions()
+        # options.add_experimental_option('excludeSwitches', ['enable-automation'])
+        # options.add_experimental_option('useAutomationExtension', False)
+        # options.add_experimental_option("prefs", {"profile.password_manager_enabled": False, "credentials_enable_service": False})
+
+        # driver = webdriver.Chrome(service=s, options=options, service_log_path=os.devnull)
+        # driver.maximize_window()
+        # driver.get(url)
+        # timeout = 10
+        # try:
+        #     element_present = EC.presence_of_element_located((By.ID, 'element_id'))
+        #     WebDriverWait(driver, timeout).until(element_present)
+        # except TimeoutException:
+        #     print("Timed out waiting for page to load")
+
+        # elements = driver.find_elements(By.XPATH, '//*[@id="parent"]')
+
+        # parentElement = elements[0]
+
+        # svg = parentElement.get_attribute('innerHTML')
+        # # print(svg)
+        # # print(type(svg))
+        # # svg = svg.encode('utf-8')
+        # # print(svg)
+        # # print(type(svg))
+        # # return
+        
+
+
+        # with open("temp/svgTest.svg", "w", encoding='utf-8') as svg_file:
+        #     svg_file.write(svg)
+
+
+
+        # url = requests.get("https://company-graph.g0v.ronny.tw/?id={0}".format("22099131"))
+        # print(type(url))
+        # print(url)
+        # print("\n\n\n\n\n\n\n")
+
         # text = url.text
         # print(type(text))
+        # print(text)
+        
         # data = json.loads(text)
         # print(type(data))
         # print(data[0][0])
 
 
+
+
+
+
+
+        # # 想辦法下載svg區塊
+
+        # # 將下載的svg轉成png
+        #     # 這裡要解決轉檔後中文變成亂碼: 編碼問題
+
+        # drawing = svg2rlg('temp/svgTest.svg')
+        # renderPM.drawToFile(drawing, 'temp/svgTest.png', fmt='PNG')
+
+        # # 上傳png到imgur
+        # CLIENT_ID = "b204114a90ad0e1"
+        # im = pyimgur.Imgur(CLIENT_ID)
+        # cur_path = pathlib.Path().resolve() / 'temp/'
+        # dest_path = cur_path.__str__()+"/companysocialnetwork.png"
+        # print(f"fileName: {dest_path}")
+        # title = "Uploaded with PyImgur"
+        # uploaded_image = im.upload_image(dest_path, title=title)
+        # print(uploaded_image.title)
+        # print(uploaded_image.link)
+        # print(uploaded_image.type)
+        
+
+        # # 丟出imgur網址
+        # image_message = ImageSendMessage(
+        #     original_content_url=uploaded_image.link,
+        #     preview_image_url=uploaded_image.link
+        # )
+        # line_bot_api.reply_message(reply_token, image_message)
 
 
 
@@ -512,9 +588,46 @@ def handle_message(event):
         if result:
             sql = 'SELECT id, type FROM `unit` WHERE `id` = "{0}"'.format(message)
             data = db.engine.execute(sql).fetchone()
+
             if data:
-                url = "https://company-graph.g0v.ronny.tw/?id={0}".format(message)
-                line_bot_api.reply_message(reply_token, TextSendMessage(text = f"{url}"))
+                company_id = message
+                url        = "http://company-graph.example/?id={0}".format(message)
+
+                print(f"\n ------------ 依統編查詢公司 Company_id: {company_id} ------------")
+
+                buttons_template_message = TemplateSendMessage(
+                    alt_text='依統編查詢公司',
+                    template=ButtonsTemplate(
+                        thumbnail_image_url='https://1office.co/sweden/wp-content/uploads/sites/13/2019/04/Register-Cleaning-Company-in-Singapore-e1594811625197.jpg',
+                        image_aspect_ratio='rectangle',
+                        image_size='cover',
+                        image_background_color='#FFFFFF',
+                        title='依統編查詢公司',
+                        text='查詢公司',
+                        default_action=URIAction(
+                            label='view detail',
+                            uri=url
+                        ),
+                        actions=[
+                            PostbackAction(
+                                    label = "公司基本資料",
+                                    display_text = "公司基本資料",
+                                    data = f'company_data&{company_id}'
+                            ),
+                            PostbackAction(
+                                    label = "公司關係圖",
+                                    display_text = "公司關係圖",
+                                    data = f'company_graph&{company_id}'
+                            ),
+                            PostbackAction(
+                                    label = "股權異動查詢",
+                                    display_text = "股權異動查詢",
+                                    data = "equity_change"
+                            ),
+                        ]
+                    )
+                )
+                line_bot_api.reply_message(reply_token, buttons_template_message)
             else:
                 line_bot_api.reply_message(reply_token, TextSendMessage(text = f"查無此統一編號。"))
 
@@ -562,6 +675,37 @@ def handle_postback(event):
     reply_token = event.reply_token
     today = datetime.now().strftime("%Y-%m-%d")
     todaytime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+    # 統編查詢公司基本資料
+    if action == "company_data":
+        ts = str(event.postback.data)
+        company_id = ts.split("&")[1]
+        print(f"\n ------------ 依統編查詢公司基本資料 Company_id: {company_id} ------------")
+
+        reply = f"https://company.g0v.ronny.tw/id/{company_id}"
+        text_message = TextSendMessage(text = reply)
+        line_bot_api.reply_message(reply_token, text_message)
+
+
+
+    # 統編查詢公司關係圖
+    if action == "company_graph":
+        ts = str(event.postback.data)
+        company_id = ts.split("&")[1]
+        print(f"\n ------------ 依統編查詢公司關係圖 Company_id: {company_id} ------------")
+
+        reply = f"https://company-graph.g0v.ronny.tw/?id={company_id}"
+        text_message = TextSendMessage(text = reply)
+        line_bot_api.reply_message(reply_token, text_message)
+
+
+    # 統編查詢股權異動
+    if action == "equity_change":
+        print(f"\n ------------ 依統編查詢股權異動 ------------")
+        reply = "https://mops.twse.com.tw/mops/web/stapap1"
+        text_message = TextSendMessage(text = reply)
+        line_bot_api.reply_message(reply_token, text_message)
 
 
     # 取消新增行程 [After Confirm template]
