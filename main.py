@@ -13,15 +13,15 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 import random, re, time, _thread
 from datetime import datetime, timedelta, timezone
-import json, requests, pathlib, pyimgur
+# import json, requests, pathlib, pyimgur
 # import plotly.graph_objects as go
 # import networkx as nx
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPM
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
-import unicodedata
+# from svglib.svglib import svg2rlg
+# from reportlab.graphics import renderPM
+# from selenium.webdriver.support import expected_conditions as EC
+# from selenium.webdriver.support.ui import WebDriverWait
+# from selenium.common.exceptions import TimeoutException
+# import unicodedata
 
 
 app = Flask(__name__)
