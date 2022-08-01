@@ -695,7 +695,7 @@ def handle_postback(event):
         company_id = ts.split("&")[1]
         print(f"\n ------------ 依統編查詢公司關係圖 Company_id: {company_id} ------------")
 
-        reply = f"https://company-graph.g0v.ronny.tw/?id={company_id}"
+        reply = f"http://61.218.59.203/?id={company_id}"
         text_message = TextSendMessage(text = reply)
         line_bot_api.reply_message(reply_token, text_message)
 
