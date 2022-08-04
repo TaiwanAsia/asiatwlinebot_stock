@@ -574,6 +574,9 @@ def handle_message(event):
             for element in elements:
                 if element['type'] == 'button' and element['action']['label'] != '股權異動查詢':
                     element['action']['uri'] = str(element['action']['uri']) + f"{company_id}"
+                if element['type'] == 'button' and element['action']['label'] == '公司關係圖(統編)':
+                    element['action']['uri'] = str(element['action']['uri']) + "&openExternalBrowser=1"
+
 
 
             line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
