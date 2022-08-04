@@ -13,7 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 import random, re, time, _thread
 from datetime import datetime, timedelta, timezone
-# import json, requests, pathlib, pyimgur
+import json, requests, pathlib, pyimgur
 # import plotly.graph_objects as go
 # import networkx as nx
 # from svglib.svglib import svg2rlg
@@ -27,20 +27,11 @@ from datetime import datetime, timedelta, timezone
 app = Flask(__name__)
 
 
-# 資料庫設定
-
-# 金秘書
-line_bot_api = LineBotApi('QjsvCW39MCuSLHErUlch3wa/DpI/Pj19p+9Lovf+FrMMUri1VLDc7klFetz4/bfcF6LP1STRbNjR+LX1ykE59Ab8hbaEupxWchLzAjz3DD3tgDOgnneQ2Cjm4uA0CJpbDmYGMEyoEY5Kb0iqABAjTgdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('3993c4bdf4997225db18561d3244971b')
-# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://b2c093cf2e3775:087cc1cd@us-cdbr-east-04.cleardb.com/heroku_38af9ed956129ed"
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@127.0.0.1:3306/asiatwlinebot"
-
-
-# IU
-# line_bot_api = LineBotApi('n3mS5jbtDnOFx/2D08RjFd1/xYDRIA3q8pIRseVtCjOQfEN5EGCa6y7iHkJn8z6GXWzdUTlRSFnPvYeEbxThl765WinmC33U6ZufRQJ7hxbAgdiEZrn99ZUhdjamx0SGdYgKdzRzedpqISaTQZ07IwdB04t89/1O/w1cDnyilFU=')
-# handler = WebhookHandler('732633e1970cad234502531cd100ba40')
-# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@127.0.0.1:3306/linebot"
-
+# 匯入設定
+import config
+line_bot_api = LineBotApi(config.line_bot_api)
+handler = WebhookHandler(config.handler)
+app.config['SQLALCHEMY_DATABASE_URI'] = config.app_config
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'connect_args': {
@@ -473,15 +464,7 @@ def handle_message(event):
 
     # [Step 0] or [統編查詢公司關係]
     else:
-
-        # 統編查詢公司關係
-
-
-
-
-
-
-        # # 先用網址跑出svg
+###################  以下嘗試將svg轉png後丟出  #######################
 
         # # The webpage is rendered dynamically with Javascript, so you will need selenium to get the rendered page.
 
@@ -523,12 +506,9 @@ def handle_message(event):
         # # print(svg)
         # # print(type(svg))
         # # return
-        
-
 
         # with open("temp/svgTest.svg", "w", encoding='utf-8') as svg_file:
         #     svg_file.write(svg)
-
 
 
         # url = requests.get("https://company-graph.g0v.ronny.tw/?id={0}".format("22099131"))
@@ -543,12 +523,6 @@ def handle_message(event):
         # data = json.loads(text)
         # print(type(data))
         # print(data[0][0])
-
-
-
-
-
-
 
         # # 想辦法下載svg區塊
 
@@ -577,63 +551,35 @@ def handle_message(event):
         #     preview_image_url=uploaded_image.link
         # )
         # line_bot_api.reply_message(reply_token, image_message)
-
+###################  以上嘗試將svg轉png後丟出  #######################
 
 
 
         message == str(message)
+        # 正規表達過濾出純數字
         pattern = re.compile(r'^[-+]?[-0-9]\d*\.\d*|[-+]?\.?[0-9]\d*$')
         result = pattern.match(message)
 
         if result:
-            sql = 'SELECT id, type FROM `unit` WHERE `id` = "{0}"'.format(message)
-            data = db.engine.execute(sql).fetchone()
+            # company_id 可能是統一編號，也可能是股票代號
+            company_id = message
 
-            if data:
-                company_id = message
-                url        = "http://company-graph.example/?id={0}".format(message)
+            print(f"\n ------------ 依統編or股票代號查詢公司 Company_id: {company_id} ------------")
 
-                print(f"\n ------------ 依統編查詢公司 Company_id: {company_id} ------------")
+            FlexMessage = json.load(open('company_info.json','r',encoding='utf-8'))
 
-                buttons_template_message = TemplateSendMessage(
-                    alt_text='依統編查詢公司',
-                    template=ButtonsTemplate(
-                        thumbnail_image_url='https://1office.co/sweden/wp-content/uploads/sites/13/2019/04/Register-Cleaning-Company-in-Singapore-e1594811625197.jpg',
-                        image_aspect_ratio='rectangle',
-                        image_size='cover',
-                        image_background_color='#FFFFFF',
-                        title='依統編查詢公司',
-                        text='查詢公司',
-                        default_action=URIAction(
-                            label='view detail',
-                            uri=url
-                        ),
-                        actions=[
-                            PostbackAction(
-                                    label = "公司基本資料",
-                                    display_text = "公司基本資料",
-                                    data = f'company_data&{company_id}'
-                            ),
-                            PostbackAction(
-                                    label = "公司關係圖",
-                                    display_text = "公司關係圖",
-                                    data = f'company_graph&{company_id}'
-                            ),
-                            PostbackAction(
-                                    label = "股權異動查詢",
-                                    display_text = "股權異動查詢",
-                                    data = "equity_change"
-                            ),
-                        ]
-                    )
-                )
-                line_bot_api.reply_message(reply_token, buttons_template_message)
-            else:
-                line_bot_api.reply_message(reply_token, TextSendMessage(text = f"查無此統一編號。"))
+            FlexMessage['body']['contents'][0]['text'] = FlexMessage['body']['contents'][0]['text'] + f": {company_id}"
+
+            elements = FlexMessage['footer']['contents']
+            for element in elements:
+                if element['type'] == 'button':
+                    element['action']['data'] = element['action']['data'] + f"&{company_id}"
+
+            line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
+
 
         # Step 0
         else:
-
             try:
                 keyword = str(message).upper()
                 newInput = Activities(userid=user_id, date=today, activity=keyword, status='日期待確認')
@@ -677,7 +623,7 @@ def handle_postback(event):
     todaytime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-    # 統編查詢公司基本資料
+    # company_data 統編查詢公司基本資料
     if action == "company_data":
         ts = str(event.postback.data)
         company_id = ts.split("&")[1]
@@ -687,9 +633,7 @@ def handle_postback(event):
         text_message = TextSendMessage(text = reply)
         line_bot_api.reply_message(reply_token, text_message)
 
-
-
-    # 統編查詢公司關係圖
+    # company_graph 統編查詢公司關係圖
     if action == "company_graph":
         ts = str(event.postback.data)
         company_id = ts.split("&")[1]
@@ -699,11 +643,30 @@ def handle_postback(event):
         text_message = TextSendMessage(text = reply)
         line_bot_api.reply_message(reply_token, text_message)
 
-
-    # 統編查詢股權異動
+    # equity_change 統編查詢股權異動
     if action == "equity_change":
         print(f"\n ------------ 依統編查詢股權異動 ------------")
         reply = "https://mops.twse.com.tw/mops/web/stapap1"
+        text_message = TextSendMessage(text = reply)
+        line_bot_api.reply_message(reply_token, text_message)
+
+    # company_chain 股票代號查詢公司產業鏈
+    if action == "company_chain":
+        ts = str(event.postback.data)
+        company_id = ts.split("&")[1]
+        print(f"\n ------------ 依股票代號公司產業鏈 Company_id: {company_id} ------------")
+
+        reply = f"https://ic.tpex.org.tw/company_chain.php?stk_code={company_id}"
+        text_message = TextSendMessage(text = reply)
+        line_bot_api.reply_message(reply_token, text_message)
+
+    # applicant_emerging_companies 股票代號查詢最近登錄興櫃
+    if action == "applicant_emerging_companies":
+        ts = str(event.postback.data)
+        company_id = ts.split("&")[1]
+        print(f"\n ------------ 依股票代號查詢最近登錄興櫃 Company_id: {company_id} ------------")
+
+        reply = f"https://www.tpex.org.tw/web/regular_emerging/apply_schedule/applicant_emerging/applicant_emerging_companies.php?l=zh-tw&stk_code={company_id}"
         text_message = TextSendMessage(text = reply)
         line_bot_api.reply_message(reply_token, text_message)
 

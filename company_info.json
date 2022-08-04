@@ -1,0 +1,102 @@
+{
+    "type": "bubble",
+    "hero": {
+      "type": "image",
+      "url": "https://1office.co/sweden/wp-content/uploads/sites/13/2019/04/Register-Cleaning-Company-in-Singapore-e1594811625197.jpg",
+      "size": "full",
+      "aspectRatio": "20:13",
+      "aspectMode": "cover",
+      "action": {
+        "type": "uri",
+        "uri": "http://linecorp.com/"
+      }
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "text",
+          "text": "公司查詢",
+          "weight": "bold",
+          "size": "xl",
+          "align": "center",
+          "color": "#d92652"
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "spacing": "sm",
+      "contents": [
+        {
+            "type": "text",
+            "text": "統一編號",
+            "weight": "bold"
+        },
+        {
+            "type": "separator"
+        },
+        {
+          "type": "button",
+          "style": "link",
+          "height": "sm",
+          "action": {
+            "type": "postback",
+            "label": "公司基本資料(統編)",
+            "data": "company_data"
+          }
+        },
+        {
+          "type": "button",
+          "style": "link",
+          "height": "sm",
+          "action": {
+            "type": "postback",
+            "label": "公司關係圖(統編)",
+            "data": "company_graph"
+          }
+        },
+        {
+          "type": "button",
+          "style": "link",
+          "height": "sm",
+          "action": {
+            "type": "postback",
+            "label": "股權異動查詢",
+            "data": "equity_change"
+          }
+        },
+        {
+            "type": "text",
+            "text": "股票代號",
+            "weight": "bold"
+        },
+        {
+            "type": "separator"
+        },
+        {
+          "type": "button",
+          "style": "link",
+          "height": "sm",
+          "action": {
+            "type": "postback",
+            "label": "產業價值鏈(股票代號)",
+            "data": "company_chain"
+          }
+        },
+        {
+          "type": "button",
+          "style": "link",
+          "height": "sm",
+          "action": {
+            "type": "postback",
+            "label": "最近登錄興櫃公司(股票代號)",
+            "data": "applicant_emerging_companies"
+          }
+        }
+      ],
+      "flex": 0
+    }
+  }
