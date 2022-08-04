@@ -43,9 +43,9 @@
           "style": "link",
           "height": "sm",
           "action": {
-            "type": "postback",
+            "type": "uri",
             "label": "公司基本資料(統編)",
-            "data": "company_data"
+            "uri": "https://company.g0v.ronny.tw/id/"
           }
         },
         {
@@ -53,9 +53,9 @@
           "style": "link",
           "height": "sm",
           "action": {
-            "type": "postback",
+            "type": "uri",
             "label": "公司關係圖(統編)",
-            "data": "company_graph"
+            "uri": "http://61.218.59.203/?id="
           }
         },
         {
@@ -63,9 +63,9 @@
           "style": "link",
           "height": "sm",
           "action": {
-            "type": "postback",
+            "type": "uri",
             "label": "股權異動查詢",
-            "data": "equity_change"
+            "uri": "https://mops.twse.com.tw/mops/web/stapap1"
           }
         },
         {
@@ -81,9 +81,9 @@
           "style": "link",
           "height": "sm",
           "action": {
-            "type": "postback",
+            "type": "uri",
             "label": "產業價值鏈(股票代號)",
-            "data": "company_chain"
+            "uri": "https://ic.tpex.org.tw/company_chain.php?stk_code="
           }
         },
         {
@@ -91,9 +91,9 @@
           "style": "link",
           "height": "sm",
           "action": {
-            "type": "postback",
+            "type": "uri",
             "label": "最近登錄興櫃公司(股票代號)",
-            "data": "applicant_emerging_companies"
+            "uri": "https://www.tpex.org.tw/web/regular_emerging/apply_schedule/applicant_emerging/applicant_emerging_companies.php?l=zh-tw&stk_code="
           }
         }
       ],

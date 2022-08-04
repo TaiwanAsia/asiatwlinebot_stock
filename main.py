@@ -572,8 +572,9 @@ def handle_message(event):
 
             elements = FlexMessage['footer']['contents']
             for element in elements:
-                if element['type'] == 'button':
-                    element['action']['data'] = element['action']['data'] + f"&{company_id}"
+                if element['type'] == 'button' and element['action']['label'] != '股權異動查詢':
+                    element['action']['uri'] = str(element['action']['uri']) + f"{company_id}"
+
 
             line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
 
@@ -621,55 +622,6 @@ def handle_postback(event):
     reply_token = event.reply_token
     today = datetime.now().strftime("%Y-%m-%d")
     todaytime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-    # company_data 統編查詢公司基本資料
-    if action == "company_data":
-        ts = str(event.postback.data)
-        company_id = ts.split("&")[1]
-        print(f"\n ------------ 依統編查詢公司基本資料 Company_id: {company_id} ------------")
-
-        reply = f"https://company.g0v.ronny.tw/id/{company_id}"
-        text_message = TextSendMessage(text = reply)
-        line_bot_api.reply_message(reply_token, text_message)
-
-    # company_graph 統編查詢公司關係圖
-    if action == "company_graph":
-        ts = str(event.postback.data)
-        company_id = ts.split("&")[1]
-        print(f"\n ------------ 依統編查詢公司關係圖 Company_id: {company_id} ------------")
-
-        reply = f"http://61.218.59.203/?id={company_id}"
-        text_message = TextSendMessage(text = reply)
-        line_bot_api.reply_message(reply_token, text_message)
-
-    # equity_change 統編查詢股權異動
-    if action == "equity_change":
-        print(f"\n ------------ 依統編查詢股權異動 ------------")
-        reply = "https://mops.twse.com.tw/mops/web/stapap1"
-        text_message = TextSendMessage(text = reply)
-        line_bot_api.reply_message(reply_token, text_message)
-
-    # company_chain 股票代號查詢公司產業鏈
-    if action == "company_chain":
-        ts = str(event.postback.data)
-        company_id = ts.split("&")[1]
-        print(f"\n ------------ 依股票代號公司產業鏈 Company_id: {company_id} ------------")
-
-        reply = f"https://ic.tpex.org.tw/company_chain.php?stk_code={company_id}"
-        text_message = TextSendMessage(text = reply)
-        line_bot_api.reply_message(reply_token, text_message)
-
-    # applicant_emerging_companies 股票代號查詢最近登錄興櫃
-    if action == "applicant_emerging_companies":
-        ts = str(event.postback.data)
-        company_id = ts.split("&")[1]
-        print(f"\n ------------ 依股票代號查詢最近登錄興櫃 Company_id: {company_id} ------------")
-
-        reply = f"https://www.tpex.org.tw/web/regular_emerging/apply_schedule/applicant_emerging/applicant_emerging_companies.php?l=zh-tw&stk_code={company_id}"
-        text_message = TextSendMessage(text = reply)
-        line_bot_api.reply_message(reply_token, text_message)
-
 
     # 取消新增行程 [After Confirm template]
     if action == "cancel":
