@@ -226,20 +226,57 @@ def handle_message(event):
 
         print(f"\n ------------ 依統編or股票代號查詢公司 Company_id: {company_id} ------------")
 
-        FlexMessage = json.load(open('company_info.json','r',encoding='utf-8'))
+        url = requests.get("https://company.g0v.ronny.tw/api/show/{0}".format(company_id))
+        text = url.text
+        json_obj = json.loads(text)
+        print(type(json_obj))
+        print(json_obj)
 
-        FlexMessage['body']['contents'][0]['text'] = FlexMessage['body']['contents'][0]['text'] + f": {company_id}"
+        if '名稱' in json_obj['data']:
+            search_output(reply_token, company_id, json_obj['data']['名稱'])
 
-        elements = FlexMessage['footer']['contents']
-        for element in elements:
-            if element['type'] == 'button' and element['action']['label'] != '股權異動查詢':
-                element['action']['uri'] = str(element['action']['uri']) + f"{company_id}"
-            if element['type'] == 'button' and element['action']['label'] == '公司關係圖(統編)':
-                element['action']['uri'] = str(element['action']['uri']) + "&openExternalBrowser=1"
+        if '公司名稱' in json_obj['data']:
+            search_output(reply_token, company_id, json_obj['data']['公司名稱'])
 
 
+    else:
+        # company_name 公司名稱搜尋
+        company_name = message
 
-        line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
+        print(f"\n ------------ 依公司名稱查詢公司 Company_name: {company_name} ------------")
+
+        url = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
+        text = url.text
+        json_obj = json.loads(text)
+
+        candidates = []
+        for candidate in json_obj['data']:
+            if '名稱' in candidate:
+                candidates.append([candidate['名稱'], candidate['統一編號']])
+            if '公司名稱' in candidate:
+                candidates.append([candidate['公司名稱'], candidate['統一編號']])
+
+        # 載入Flex template
+        FlexMessage = json.load(open('template.json','r',encoding='utf-8'))
+        FlexMessage['contents'][0]['header']['contents'][0]['text'] = company_name
+        candidates_list = []
+        
+        for candidate in candidates:
+            cand =  {
+                "type": "button",
+                "action": {
+                    "type": "postback",
+                    "label": f"{candidate[0]}",
+                    "data": f"company_search&{candidate[0]}&{candidate[1]}"
+                }
+            }
+            candidates_list.append(cand)
+
+        FlexMessage['contents'][0]['body']['contents'] = candidates_list
+        
+
+        line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
+
 
 
 
@@ -247,15 +284,26 @@ def handle_message(event):
 
 
 @handler.add(PostbackEvent)
-# def handle_postback(event):
-#     ts = str(event.postback.data)
-#     # print("Postback: " + ts)
-#     action = ts.split("&")[0]
-#     # keyword = str(ts.split("&")[1])
-#     user_id = event.source.user_id
-#     reply_token = event.reply_token
-#     today = datetime.now().strftime("%Y-%m-%d")
-#     todaytime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def handle_postback(event):
+    ts = str(event.postback.data)
+    # print("Postback: " + ts)
+    action = ts.split("&")[0]
+    # keyword = str(ts.split("&")[1])
+    user_id = event.source.user_id
+    reply_token = event.reply_token
+    today = datetime.now().strftime("%Y-%m-%d")
+    todaytime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+    if action == "company_search":
+        company_name = str(ts.split("&")[1])
+        company_id   = int(ts.split("&")[2])
+
+        # 輸出公司查詢結果
+        search_output(reply_token, company_id, company_name)
+
+
+
 
 #     # 新增固定行程 Step 1: 選擇頻率
 #     if action == "add_routine_1":
@@ -308,6 +356,20 @@ def handle_message(event):
 
 ######### 以下放多次使用的 def #########
 
+# 輸出公司查詢結果
+def search_output(reply_token, company_id, company_name):
+    print(f"\n ------------ 輸出公司查詢結果  {company_id} {company_name} ------------")
+
+    FlexMessage = json.load(open('company_info.json','r',encoding='utf-8'))
+    FlexMessage['body']['contents'][0]['text'] = f"{company_id} {company_name}"
+    elements = FlexMessage['footer']['contents']
+    for element in elements:
+        if element['type'] == 'button' and element['action']['label'] != '股權異動查詢':
+            element['action']['uri'] = str(element['action']['uri']) + f"{company_id}"
+        if element['type'] == 'button' and element['action']['label'] == '公司關係圖(統編)':
+            element['action']['uri'] = str(element['action']['uri']) + "&openExternalBrowser=1"
+
+    line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
 
 
 # 取得多個固定行程內容[Flex template]
