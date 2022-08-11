@@ -13,7 +13,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 import random, re, time, _thread
 from datetime import datetime, timedelta, timezone
-import json, requests, pathlib, pyimgur
+import json, requests, urllib.request, chardet
+from bs4 import BeautifulSoup
 # import plotly.graph_objects as go
 # import networkx as nx
 # from svglib.svglib import svg2rlg
@@ -21,7 +22,7 @@ import json, requests, pathlib, pyimgur
 # from selenium.webdriver.support import expected_conditions as EC
 # from selenium.webdriver.support.ui import WebDriverWait
 # from selenium.common.exceptions import TimeoutException
-# import unicodedata
+# import unicodedata, pathlib, pyimgur
 
 
 app = Flask(__name__)
@@ -42,6 +43,31 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 
 db = SQLAlchemy(app)
+
+
+
+class Dataset_day(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    website_id = db.Column(db.Integer, nullable=False)
+    table_name = db.Column(db.Text, nullable=False)
+    order      = db.Column(db.Integer, nullable=True)
+    company_name = db.Column(db.Text, nullable=True)
+    buy_amount = db.Column(db.Text, nullable=True)
+    buy_high = db.Column(db.Text, nullable=True)
+    buy_low = db.Column(db.Text, nullable=True)
+    buy_average = db.Column(db.Text, nullable=True)
+    buy_average_yesterday = db.Column(db.Text, nullable=True)
+    change_percent = db.Column(db.Text, nullable=True)
+    sell_amount = db.Column(db.Text, nullable=True)
+    sell_high = db.Column(db.Text, nullable=True)
+    sell_low = db.Column(db.Text, nullable=True)
+    sell_average = db.Column(db.Text, nullable=True)
+    date = db.Column(db.Date, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
+
+
+    def __repr__(self):
+        return '<Dataset_day %r>' % self.dataset_day
 
 
 # class Activities(db.Model):
@@ -94,7 +120,56 @@ db = SQLAlchemy(app)
     # line_bot_api.multicast(list2, TextSendMessage(text=reply))
 # ============開機推播============
 
+### 爬蟲
+def crawler():
+    while 1 == 1:
+        dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
 
+        if now.hour == 9 and now.minute == 00:
+            ######  必富網熱門Top100 website_id=1  ######
+            print(f"\n ------------ 爬蟲開始: 必富網熱門Top100 ------------")
+
+            website_id = 1
+            fp = urllib.request.urlopen('https://www.berich.com.tw/DP/OrderList/List_Hot.asp').read()
+            text = fp.decode('Big5')
+            soup = BeautifulSoup(text, features='lxml')
+
+            # Find data
+            target_table = soup.select_one('.sin_title').find_parent('table')
+            target_trs = target_table.find_all('tr')
+        
+            # Set data
+            dataset = []
+            for tr in target_trs:
+                td = tr.find_all('td')
+                row = [i.text for i in td]
+                dataset.append(row)
+
+            # 放入order欄位
+            dataset[0][0] = 'order'
+
+            dataset_list = []
+            for data in dataset:
+                if data[0] and data[0] != 'order':
+                    dataset_list.append(dict(zip(dataset[0], data)))
+
+            # Clear data
+            sql = f"DELETE FROM `dataset_day` WHERE `website_id` = '1'"
+            db.engine.execute(sql)
+
+            # Insert data
+            for dataset in dataset_list:
+                newInput = Dataset_day(website_id=website_id, table_name='hotTop100', order=dataset['order'],
+                company_name=dataset['未上市櫃股票公司名稱'], buy_amount=dataset['★買張'], buy_high=dataset['買高'], buy_low=dataset['買低']
+                , buy_average=dataset['買均'], buy_average_yesterday=dataset['昨均'], change_percent=dataset['漲跌幅'], sell_amount=dataset['★賣張']
+                , sell_high=dataset['賣高'], sell_low=dataset['賣低'], sell_average=dataset['賣均'])
+                db.session.add(newInput)
+                db.session.commit()
+
+            print(f"\n ------------ 爬蟲結束: 必富網熱門Top100 ------------")
+
+        time.sleep(58)
     
 
 # 監測
@@ -121,8 +196,6 @@ def handle_message(event):
     message = event.message.text
     today = datetime.now().strftime("%Y-%m-%d")
 
-
-    # [Step 0] or [統編查詢公司關係]
 
 ###################  以下嘗試將svg轉png後丟出  #######################
 
@@ -406,5 +479,5 @@ def handle_sticker_message(event):
 import os
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 8888))
-    # _thread.start_new_thread(periodGuy, ())
+    _thread.start_new_thread(crawler, ())
     app.run(host='0.0.0.0', port=port)
