@@ -321,6 +321,7 @@ def handle_message(event):
         url = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
         text = url.text
         json_obj = json.loads(text)
+        json_obj_len = json_obj['found']
 
         candidates = []
         for candidate in json_obj['data']:
@@ -328,6 +329,8 @@ def handle_message(event):
                 candidates.append([candidate['名稱'], candidate['統一編號']])
             if '公司名稱' in candidate:
                 candidates.append([candidate['公司名稱'], candidate['統一編號']])
+            if '商業名稱' in candidate:
+                candidates.append([candidate['商業名稱'], candidate['統一編號']])
 
         # 載入Flex template
         FlexMessage = json.load(open('template.json','r',encoding='utf-8'))
@@ -342,6 +345,19 @@ def handle_message(event):
                     "label": f"{candidate[0]}",
                     "data": f"company_search&{candidate[0]}&{candidate[1]}"
                 }
+            }
+            candidates_list.append(cand)
+
+        if json_obj_len > 10:
+            cand =  {
+                "type": "text",
+                "text": f"共有{json_obj_len}筆，建議搜尋精準關鍵字",
+                "color": "#aaaaaa",
+                "size": "md",
+                "weight": "bold",
+                "style": "italic",
+                "decoration": "underline",
+                "align": "center"
             }
             candidates_list.append(cand)
 
