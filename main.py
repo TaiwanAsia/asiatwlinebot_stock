@@ -1,5 +1,6 @@
 from ast import If
 from base64 import encode
+from itertools import count
 from random import random
 from flask import Flask, request, abort
 from linebot import (
@@ -15,14 +16,6 @@ import random, re, time, _thread
 from datetime import datetime, timedelta, timezone
 import json, requests, urllib.request, chardet
 from bs4 import BeautifulSoup
-# import plotly.graph_objects as go
-# import networkx as nx
-# from svglib.svglib import svg2rlg
-# from reportlab.graphics import renderPM
-# from selenium.webdriver.support import expected_conditions as EC
-# from selenium.webdriver.support.ui import WebDriverWait
-# from selenium.common.exceptions import TimeoutException
-# import unicodedata, pathlib, pyimgur
 
 
 app = Flask(__name__)
@@ -64,13 +57,10 @@ class Dataset_day(db.Model):
     sell_average = db.Column(db.Text, nullable=True)
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
-
-
     def __repr__(self):
         return '<Dataset_day %r>' % self.dataset_day
 
-
-# class Activities(db.Model):
+# class Company_l_o(db.Model):
 #     id = db.Column(db.Integer, primary_key=True)
 #     userid = db.Column(db.String(80), nullable=False)
 #     date = db.Column(db.DateTime, nullable=False)
@@ -78,47 +68,13 @@ class Dataset_day(db.Model):
 #     status = db.Column(db.String(80), nullable=False)
 #     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
 #     def __repr__(self):
-#         return '<Activities %r>' % self.activity
-
-# class Notes(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     userid = db.Column(db.String(80), nullable=False)
-#     title = db.Column(db.Text, nullable=False)
-#     status = db.Column(db.String(80), nullable=False)
-#     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
-#     def __repr__(self):
-#         return '<Notes %r>' % self.note
-
-# class Activities_routine(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     userid = db.Column(db.String(80), nullable=False)
-#     title = db.Column(db.Text, nullable=True)
-#     frequency = db.Column(db.Text, nullable=False)
-#     frequency_2 = db.Column(db.Text, nullable=True)
-#     time = db.Column(db.Time, nullable=False)
-#     end_date = db.Column(db.Date, nullable=True)
-#     status = db.Column(db.String(80), nullable=False)
-#     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
-#     def __repr__(self):
-#         return '<Activities_routine %r>' % self.activity_routine
+#         return '<Company_l_o %r>' % self.company_l_o
 
 
 
-# db.init_app(app)
+db.init_app(app)
 
 
-
-# ============開機推播============
-# with app.app_context():
-    # sql = "SELECT DISTINCT userid FROM activities"
-    # Edata = db.engine.execute(sql).fetchall()
-    # list2 = []
-    # for event in Edata:
-    #     list2.append(event[0])
-    # reply = "金秘書跟您說早安！\n試著直接輸入行程名稱或點選下方選單開始使用～"
-    # print(reply)
-    # line_bot_api.multicast(list2, TextSendMessage(text=reply))
-# ============開機推播============
 
 ### 爬蟲
 def crawler():
@@ -126,7 +82,7 @@ def crawler():
         dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
 
-        if now.hour == 9 and now.minute == 00:
+        if now.hour == 14 and now.minute == 6:
             ######  必富網熱門Top100 website_id=1  ######
             print(f"\n ------------ 爬蟲開始: 必富網熱門Top100 ------------")
 
@@ -196,124 +152,56 @@ def handle_message(event):
     message = event.message.text
     today = datetime.now().strftime("%Y-%m-%d")
 
-
-###################  以下嘗試將svg轉png後丟出  #######################
-
-        # # The webpage is rendered dynamically with Javascript, so you will need selenium to get the rendered page.
-
-        # url = "https://company-graph.g0v.ronny.tw/?id={0}".format("22099131")
-
-        # #發送 GET 請求到 url，並將回應物件放到 resp
-        # # resp = requests.get(url)
-
-        # from selenium import webdriver
-        # from selenium.webdriver.chrome.service import Service
-        # from webdriver_manager.chrome import ChromeDriverManager
-        # from selenium.webdriver.common.by import By
-
-        # s=Service(ChromeDriverManager().install())
-
-        # options = webdriver.ChromeOptions()
-        # options.add_experimental_option('excludeSwitches', ['enable-automation'])
-        # options.add_experimental_option('useAutomationExtension', False)
-        # options.add_experimental_option("prefs", {"profile.password_manager_enabled": False, "credentials_enable_service": False})
-
-        # driver = webdriver.Chrome(service=s, options=options, service_log_path=os.devnull)
-        # driver.maximize_window()
-        # driver.get(url)
-        # timeout = 10
-        # try:
-        #     element_present = EC.presence_of_element_located((By.ID, 'element_id'))
-        #     WebDriverWait(driver, timeout).until(element_present)
-        # except TimeoutException:
-        #     print("Timed out waiting for page to load")
-
-        # elements = driver.find_elements(By.XPATH, '//*[@id="parent"]')
-
-        # parentElement = elements[0]
-
-        # svg = parentElement.get_attribute('innerHTML')
-        # # print(svg)
-        # # print(type(svg))
-        # # svg = svg.encode('utf-8')
-        # # print(svg)
-        # # print(type(svg))
-        # # return
-
-        # with open("temp/svgTest.svg", "w", encoding='utf-8') as svg_file:
-        #     svg_file.write(svg)
-
-
-        # url = requests.get("https://company-graph.g0v.ronny.tw/?id={0}".format("22099131"))
-        # print(type(url))
-        # print(url)
-        # print("\n\n\n\n\n\n\n")
-
-        # text = url.text
-        # print(type(text))
-        # print(text)
-        
-        # data = json.loads(text)
-        # print(type(data))
-        # print(data[0][0])
-
-        # # 想辦法下載svg區塊
-
-        # # 將下載的svg轉成png
-        #     # 這裡要解決轉檔後中文變成亂碼: 編碼問題
-
-        # drawing = svg2rlg('temp/svgTest.svg')
-        # renderPM.drawToFile(drawing, 'temp/svgTest.png', fmt='PNG')
-
-        # # 上傳png到imgur
-        # CLIENT_ID = "b204114a90ad0e1"
-        # im = pyimgur.Imgur(CLIENT_ID)
-        # cur_path = pathlib.Path().resolve() / 'temp/'
-        # dest_path = cur_path.__str__()+"/companysocialnetwork.png"
-        # print(f"fileName: {dest_path}")
-        # title = "Uploaded with PyImgur"
-        # uploaded_image = im.upload_image(dest_path, title=title)
-        # print(uploaded_image.title)
-        # print(uploaded_image.link)
-        # print(uploaded_image.type)
-        
-
-        # # 丟出imgur網址
-        # image_message = ImageSendMessage(
-        #     original_content_url=uploaded_image.link,
-        #     preview_image_url=uploaded_image.link
-        # )
-        # line_bot_api.reply_message(reply_token, image_message)
-###################  以上嘗試將svg轉png後丟出  #######################
-
-
-
     message == str(message)
+
     # 正規表達過濾出純數字
     pattern = re.compile(r'^[-+]?[-0-9]\d*\.\d*|[-+]?\.?[0-9]\d*$')
-    result = pattern.match(message)
+    number = pattern.match(message)
 
-    if result:
-        # company_id 可能是統一編號，也可能是股票代號
-        company_id = message
+    # keyword 是數字
+    if number:
+        print(f"\n ------------ 統編or股票代號查詢公司  {message} ------------")
 
-        print(f"\n ------------ 依統編or股票代號查詢公司 Company_id: {company_id} ------------")
+        company_uni_id = ''
+        company_code   = ''
+        company_name   = ''
 
-        url = requests.get("https://company.g0v.ronny.tw/api/show/{0}".format(company_id))
-        text = url.text
+        # 先判斷統一編號
+        url      = requests.get("https://company.g0v.ronny.tw/api/show/{0}".format(message))
+        text     = url.text
         json_obj = json.loads(text)
-        print(type(json_obj))
-        print(json_obj)
 
         if '名稱' in json_obj['data']:
-            search_output(reply_token, company_id, json_obj['data']['名稱'])
+            company_uni_id = message
+            company_name   = json_obj['data']['名稱']
 
-        if '公司名稱' in json_obj['data']:
-            search_output(reply_token, company_id, json_obj['data']['公司名稱'])
+        elif '公司名稱' in json_obj['data']:
+            company_uni_id = message
+            company_name = json_obj['data']['公司名稱']
 
 
+        # 再判斷股票代號
+        url  = requests.get("https://mis.twse.com.tw/stock/api/getStockInfo.jsp?json=1&delay=0&ex_ch=tse_{0}.tw%7C".format(message))
+        text = url.text
+        json_obj = json.loads(text)
+
+        if json_obj['msgArray']:
+            company_name = json_obj['msgArray'][0]['nf']
+            company_code = message
+        
+        if company_name:
+            url  = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
+            text = url.text
+            json_obj = json.loads(text)
+            company_uni_id = json_obj['data'][0]['統一編號']
+
+        
+        search_output(reply_token, company_uni_id, company_name, company_code)
+
+
+    # keyword 非數字
     else:
-        # company_name 公司名稱搜尋
+        # 公司名稱搜尋
         company_name = message
 
         print(f"\n ------------ 依公司名稱查詢公司 Company_name: {company_name} ------------")
@@ -323,52 +211,62 @@ def handle_message(event):
         json_obj = json.loads(text)
         json_obj_len = json_obj['found']
 
-        candidates = []
-        for candidate in json_obj['data']:
-            if '名稱' in candidate:
-                candidates.append([candidate['名稱'], candidate['統一編號']])
-            if '公司名稱' in candidate:
-                candidates.append([candidate['公司名稱'], candidate['統一編號']])
-            if '商業名稱' in candidate:
-                candidates.append([candidate['商業名稱'], candidate['統一編號']])
-
-        # 載入Flex template
-        FlexMessage = json.load(open('template.json','r',encoding='utf-8'))
-        FlexMessage['contents'][0]['header']['contents'][0]['text'] = company_name
-        candidates_list = []
+        if json_obj_len < 1:
+            line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料耶..."))
         
-        for candidate in candidates:
-            cand =  {
-                "type": "button",
-                "action": {
-                    "type": "postback",
-                    "label": f"{candidate[0]}",
-                    "data": f"company_search&{candidate[0]}&{candidate[1]}"
+        elif json_obj_len == 1:
+            company_uni_id = json_obj['data'][0]['統一編號']
+
+            if '名稱' in json_obj['data'][0]:
+                company_name = json_obj['data'][0]['名稱']
+            if '公司名稱' in json_obj['data'][0]:
+                company_name = json_obj['data'][0]['公司名稱']
+
+            search_output(reply_token, company_uni_id, company_name)
+            
+        else:
+            candidates = []
+            for candidate in json_obj['data']:
+                if '名稱' in candidate:
+                    candidates.append([candidate['名稱'], candidate['統一編號']])
+                if '公司名稱' in candidate:
+                    candidates.append([candidate['公司名稱'], candidate['統一編號']])
+                if '商業名稱' in candidate:
+                    candidates.append([candidate['商業名稱'], candidate['統一編號']])
+
+            # 載入Flex template
+            FlexMessage = json.load(open('template.json','r',encoding='utf-8'))
+            FlexMessage['contents'][0]['header']['contents'][0]['text'] = company_name
+            candidates_list = []
+            
+            for candidate in candidates:
+                cand =  {
+                    "type": "button",
+                    "action": {
+                        "type": "postback",
+                        "label": f"{candidate[0]}",
+                        "data": f"company_search&{candidate[0]}&{candidate[1]}"
+                    }
                 }
-            }
-            candidates_list.append(cand)
+                candidates_list.append(cand)
 
-        if json_obj_len > 10:
-            cand =  {
-                "type": "text",
-                "text": f"共有{json_obj_len}筆，建議搜尋精準關鍵字",
-                "color": "#aaaaaa",
-                "size": "md",
-                "weight": "bold",
-                "style": "italic",
-                "decoration": "underline",
-                "align": "center"
-            }
-            candidates_list.append(cand)
+            if json_obj_len > 10:
+                cand =  {
+                    "type": "text",
+                    "text": f"共有{json_obj_len}筆，建議搜尋精準關鍵字",
+                    "color": "#aaaaaa",
+                    "size": "md",
+                    "weight": "bold",
+                    "style": "italic",
+                    "decoration": "underline",
+                    "align": "center"
+                }
+                candidates_list.append(cand)
 
-        FlexMessage['contents'][0]['body']['contents'] = candidates_list
-        
+            FlexMessage['contents'][0]['body']['contents'] = candidates_list
+            
 
-        line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
-
-
-
-
+            line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
 
 
 
@@ -392,95 +290,51 @@ def handle_postback(event):
         search_output(reply_token, company_id, company_name)
 
 
+    if action == "tradeInfo":
+        company_name = str(ts.split("&")[1])
+        company_id   = int(ts.split("&")[2])
+
+        FlexMessage = json.load(open('tradeInfo.json','r',encoding='utf-8'))
+        
+        BoxTop = FlexMessage['body']['contents'][0]
+        BoxTop['contents'][0]['text'] = company_name
+
+        BoxMid = FlexMessage['body']['contents'][1]['contents'][1]['contents'][3]
+    
+        sql = 'SELECT * FROM dataset_day where `company_name` like "%%{0}%%" limit 1'.format(company_name[:4])
+        company = db.engine.execute(sql).fetchone()
 
 
-#     # 新增固定行程 Step 1: 選擇頻率
-#     if action == "add_routine_1":
-#         print("\n ------------ 新增固定行程  Step 1: 選擇頻率 ------------")
-
-#         keyword = str(ts.split("&")[1])
-#         id      = int(ts.split("&")[2])
-
-#         # 先刪 Step 0 新增的activity
-#         sql = f"DELETE FROM `activities` WHERE (`id` = '{id}')"
-#         db.engine.execute(sql)
-
-#         # Step 1 選擇頻率
-#         buttons_template_message = TemplateSendMessage(
-#             alt_text='新增固定行程',
-#             template=ButtonsTemplate(
-#                 thumbnail_image_url='https://www.thirtyhandmadedays.com/wp-content/uploads/2020/07/printable-daily-schedule.jpg',
-#                 image_aspect_ratio='rectangle',
-#                 image_size='cover',
-#                 image_background_color='#FFFFFF',
-#                 title='固定行程 Step 1',
-#                 text='選擇頻率',
-#                 default_action=URIAction(
-#                     label='view detail',
-#                     uri='http://example.com/page/123'
-#                 ),
-#                 actions=[
-#                     PostbackAction(
-#                             label = "每日",
-#                             display_text = "每日",
-#                             data = f'add_routine_2&每日&{1}&{keyword}'
-#                     ),
-#                     PostbackAction(
-#                             label = "每週",
-#                             display_text = "每週",
-#                             data = f'add_routine_2&每週&{1}&{keyword}'
-#                     ),
-#                     PostbackAction(
-#                             label = "每月",
-#                             display_text = "每月",
-#                             data = f'add_routine_2&每月&{1}&{keyword}'
-#                     ),
-#                 ]
-#             )
-#         )
-#         line_bot_api.reply_message(reply_token, buttons_template_message)
-
-
+        line_bot_api.reply_message(reply_token, FlexSendMessage('tradeInfo',FlexMessage))
 
 
 ######### 以下放多次使用的 def #########
 
 # 輸出公司查詢結果
-def search_output(reply_token, company_id, company_name):
-    print(f"\n ------------ 輸出公司查詢結果  {company_id} {company_name} ------------")
+def search_output(reply_token, company_uni_id, company_name, company_code = ''):
+    print(f"\n ------------ 輸出公司查詢結果  {company_uni_id} {company_name} {company_code}------------")
 
     FlexMessage = json.load(open('company_info.json','r',encoding='utf-8'))
-    FlexMessage['body']['contents'][0]['text'] = f"{company_id} {company_name}"
-    elements = FlexMessage['footer']['contents']
+    FlexMessage['body']['contents'][0]['text'] = f"{company_uni_id} {company_name}"
+    elements = FlexMessage['body']['contents'][1]['contents']
     for element in elements:
-        if element['type'] == 'button' and element['action']['label'] != '股權異動查詢':
-            element['action']['uri'] = str(element['action']['uri']) + f"{company_id}"
-        if element['type'] == 'button' and element['action']['label'] == '公司關係圖(統編)':
-            element['action']['uri'] = str(element['action']['uri']) + "&openExternalBrowser=1"
+        ele_type     = element['type']
+        if ele_type == 'button':
+            action_type  = element['action']['type']
+            action_label = element['action']['label']
+            if action_type == 'uri':
+                if action_label == '公司基本資料':
+                    element['action']['uri'] = str(element['action']['uri']) + f"{company_uni_id}"
+                elif action_label == '公司關係圖':
+                    element['action']['uri'] = str(element['action']['uri']) + f"{company_uni_id}" + "&openExternalBrowser=1"
+                elif action_label == '股權異動查詢':
+                    pass
+                else:
+                    element['action']['uri'] = str(element['action']['uri']) + f"{company_code}"
+            if action_type == 'postback':
+                element['action']['data'] = str(element['action']['data']) + f"{company_name}&{company_uni_id}"
 
     line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
-
-
-# 取得多個固定行程內容[Flex template]
-# def get_V3_routines(activities_routine, reply_token, isPast):
-#     if len(activities_routine) > 0:
-#         contents = []
-#         for routine in activities_routine:
-#             contents.append({
-#                 'type': 'button',
-#                 'action': {
-#                     'type' : 'postback',
-#                     'label': f'{routine[2]}',
-#                     'data' : f'routine&{routine[0]}'
-#                 } 
-#             })
-#         Template = json.load(open('template.json','r',encoding='utf-8'))
-#         Template['contents'][0]['body']['contents'] = contents
-#         line_bot_api.reply_message(reply_token, FlexSendMessage('Template',Template))
-#     else:
-#         text = "查無此固定行程。"
-#         line_bot_api.reply_message(reply_token, TextSendMessage(text = text))
-
 
 
 # Message event: Sticker
