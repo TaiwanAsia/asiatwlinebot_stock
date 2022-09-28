@@ -590,44 +590,6 @@
             "margin": "xxl"
           }
         ]
-      },
-      {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": "熱門未上市網站報價",
-            "weight": "bold",
-            "margin": "xxl"
-          },
-          {
-            "type": "separator",
-            "margin": "md"
-          },
-          {
-            "type": "button",
-            "style": "link",
-            "height": "sm",
-            "action": {
-              "type": "uri",
-              "label": "必富網",
-              "uri": "https://www.berich.com.tw/DP/OrderList/List_Hot.asp"
-            },
-            "offsetTop": "sm"
-          },
-          {
-            "type": "button",
-            "style": "link",
-            "height": "sm",
-            "action": {
-              "type": "uri",
-              "label": "台灣投資達人",
-              "uri": "http://www.money568.com.tw/Order_Hot.asp"
-            }
-          }
-        ],
-        "height": "120px"
       }
     ]
   }

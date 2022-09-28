@@ -92,7 +92,7 @@ def crawler():
         dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
 
-        if now.hour == 13 and now.minute == 52:
+        if now.hour == 14 and now.minute == 12:
 
             # Clear data
             sql = "TRUNCATE `linebot_stock`.`dataset_day`;"
@@ -342,18 +342,55 @@ def handle_postback(event):
         company_name = str(ts.split("&")[1])
         company_id   = int(ts.split("&")[2])
 
-        FlexMessage = json.load(open('tradeInfo.json','r',encoding='utf-8'))
+        sql = 'SELECT * FROM dataset_day where `company_name` like "%%{0}%%"'.format(company_name[:4])
+        companies = db.engine.execute(sql).fetchall()
+
+        # 未上市熱門股
+        if len(companies) > 1:
         
-        BoxTop = FlexMessage['body']['contents'][0]
-        BoxTop['contents'][0]['text'] = company_name
+            FlexMessage = json.load(open('tradeInfo_stock.json','r',encoding='utf-8'))
+            BoxTop = FlexMessage['body']['contents'][0]
+            BoxTop['contents'][0]['text'] = company_name
 
-        BoxMid = FlexMessage['body']['contents'][1]['contents'][1]['contents'][3]
+            Target_buy  = FlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
+            Target_sell = FlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][1]
+            
+            sql = 'SELECT buy_amount FROM dataset_day where `website_id` = 1 and `company_name` like "%%{0}%%"'.format(company_name[:4])
+            max_buy_amount = db.engine.execute(sql).fetchone()[0]
+            Target_buy['contents'][0]['text'] = max_buy_amount
+            Target_buy['contents'][2]['text'] = companies[0]['buy_average']
+
+            sql = 'SELECT sell_amount FROM dataset_day where `website_id` = 1 and `company_name` like "%%{0}%%"'.format(company_name[:4])
+            max_sell_amount = db.engine.execute(sql).fetchone()[0]
+            Target_sell['contents'][0]['text'] = max_sell_amount
+            Target_sell['contents'][2]['text'] = companies[0]['sell_average']
+
+            # WantBox = FlexMessage['body']['contents'][1]['contents'][1]['contents']
+
+            WantBox_buy  = FlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+            WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&1&{company_name[:4]}" 
+            WantBox_sell = FlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+            WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&2&{company_name[:4]}"
+
+            
+        else:
+            FlexMessage = json.load(open('tradeInfo.json','r',encoding='utf-8'))
+            BoxTop = FlexMessage['body']['contents'][0]
+            BoxTop['contents'][0]['text'] = company_name
+            BoxMid = FlexMessage['body']['contents'][1]['contents'][1]['contents'][3]
+        
     
-        sql = 'SELECT * FROM dataset_day where `company_name` like "%%{0}%%" limit 1'.format(company_name[:4])
-        company = db.engine.execute(sql).fetchone()
-
 
         line_bot_api.reply_message(reply_token, FlexSendMessage('tradeInfo',FlexMessage))
+
+    
+    if action == 'iwanttrade':
+        user         = str(ts.split("&")[1])
+        act          = str(ts.split("&")[2])
+        company_name = ts.split("&")[3]
+        print("\n\n")
+        print(user + ' ' + act + ' ' + company_name)
+
 
 
 ######### 以下放多次使用的 def #########

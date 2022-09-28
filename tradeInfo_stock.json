@@ -1,0 +1,324 @@
+{
+    "type": "bubble",
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "台泥循環能源",
+              "size": "xxl",
+              "weight": "bold",
+              "align": "center"
+            }
+          ]
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "sm",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "box",
+                  "layout": "horizontal",
+                  "contents": [
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "買張",
+                          "align": "center",
+                          "margin": "none",
+                          "weight": "bold"
+                        },
+                        {
+                          "type": "box",
+                          "layout": "horizontal",
+                          "contents": [
+                            {
+                              "type": "box",
+                              "layout": "vertical",
+                              "contents": [],
+                              "backgroundColor": "#B7B7B7",
+                              "width": "2px"
+                            }
+                          ],
+                          "flex": 1,
+                          "width": "12px"
+                        },
+                        {
+                          "type": "text",
+                          "text": "買均",
+                          "align": "center",
+                          "weight": "bold"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "賣張",
+                          "align": "center",
+                          "weight": "bold"
+                        },
+                        {
+                          "type": "box",
+                          "layout": "horizontal",
+                          "contents": [
+                            {
+                              "type": "box",
+                              "layout": "vertical",
+                              "contents": [],
+                              "backgroundColor": "#B7B7B7",
+                              "width": "2px"
+                            }
+                          ],
+                          "flex": 1,
+                          "width": "12px"
+                        },
+                        {
+                          "type": "text",
+                          "text": "賣均",
+                          "align": "center",
+                          "weight": "bold"
+                        }
+                      ]
+                    }
+                  ],
+                  "flex": 1,
+                  "maxWidth": "300px"
+                },
+                {
+                  "type": "separator",
+                  "margin": "none",
+                  "color": "#333333"
+                },
+                {
+                  "type": "box",
+                  "layout": "vertical",
+                  "contents": [
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "box",
+                          "layout": "horizontal",
+                          "contents": [
+                            {
+                              "type": "box",
+                              "layout": "horizontal",
+                              "contents": [
+                                {
+                                  "type": "box",
+                                  "layout": "vertical",
+                                  "contents": [],
+                                  "backgroundColor": "#B7B7B7",
+                                  "width": "2px"
+                                }
+                              ],
+                              "width": "12px",
+                              "flex": 1
+                            }
+                          ],
+                          "offsetStart": "59px"
+                        },
+                        {
+                          "type": "box",
+                          "layout": "horizontal",
+                          "contents": [
+                            {
+                              "type": "box",
+                              "layout": "horizontal",
+                              "contents": [
+                                {
+                                  "type": "box",
+                                  "layout": "vertical",
+                                  "contents": [],
+                                  "backgroundColor": "#B7B7B7",
+                                  "width": "2px"
+                                }
+                              ],
+                              "flex": 1,
+                              "width": "12px"
+                            }
+                          ],
+                          "offsetStart": "59px"
+                        }
+                      ],
+                      "maxWidth": "300px",
+                      "height": "10px"
+                    }
+                  ],
+                  "paddingBottom": "none"
+                },
+                {
+                  "type": "box",
+                  "layout": "horizontal",
+                  "contents": [
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "72",
+                          "align": "center",
+                          "margin": "none",
+                          "color": "#db4b4b"
+                        },
+                        {
+                          "type": "box",
+                          "layout": "horizontal",
+                          "contents": [
+                            {
+                              "type": "box",
+                              "layout": "vertical",
+                              "contents": [],
+                              "backgroundColor": "#B7B7B7",
+                              "width": "2px"
+                            }
+                          ],
+                          "flex": 1,
+                          "width": "12px"
+                        },
+                        {
+                          "type": "text",
+                          "text": "23",
+                          "align": "center",
+                          "color": "#db4b4b"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "23.5",
+                          "align": "center",
+                          "color": "#64a856"
+                        },
+                        {
+                          "type": "box",
+                          "layout": "horizontal",
+                          "contents": [
+                            {
+                              "type": "box",
+                              "layout": "vertical",
+                              "contents": [],
+                              "backgroundColor": "#B7B7B7",
+                              "width": "2px"
+                            }
+                          ],
+                          "flex": 1,
+                          "width": "12px"
+                        },
+                        {
+                          "type": "text",
+                          "text": "166",
+                          "align": "center",
+                          "color": "#64a856"
+                        }
+                      ]
+                    }
+                  ],
+                  "flex": 1,
+                  "maxWidth": "300px"
+                }
+              ],
+              "margin": "md"
+            },
+            {
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                {
+                  "type": "button",
+                  "action": {
+                    "type": "postback",
+                    "label": "我要賣",
+                    "data": "iwanttrade"
+                  },
+                  "style": "primary",
+                  "color": "#a37676",
+                  "height": "sm",
+                  "margin": "none",
+                  "offsetStart": "16px"
+                },
+                {
+                  "type": "filler"
+                },
+                {
+                  "type": "button",
+                  "action": {
+                    "type": "postback",
+                    "label": "我要買",
+                    "data": "iwanttrade"
+                  },
+                  "style": "primary",
+                  "color": "#a37676",
+                  "margin": "none",
+                  "height": "sm",
+                  "offsetEnd": "27px"
+                }
+              ],
+              "margin": "xxl"
+            }
+          ]
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "熱門未上市網站報價",
+              "weight": "bold",
+              "margin": "xxl"
+            },
+            {
+              "type": "separator",
+              "margin": "md"
+            },
+            {
+              "type": "button",
+              "style": "link",
+              "height": "sm",
+              "action": {
+                "type": "uri",
+                "label": "必富網",
+                "uri": "https://www.berich.com.tw/DP/OrderList/List_Hot.asp"
+              },
+              "offsetTop": "sm"
+            },
+            {
+              "type": "button",
+              "style": "link",
+              "height": "sm",
+              "action": {
+                "type": "uri",
+                "label": "台灣投資達人",
+                "uri": "http://www.money568.com.tw/Order_Hot.asp"
+              }
+            }
+          ],
+          "height": "120px"
+        }
+      ]
+    }
+  }
