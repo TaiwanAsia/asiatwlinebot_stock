@@ -1,5 +1,7 @@
+beautifulsoup4==4.11.1
+chardet==5.0.0
 Flask==2.0.1
 Flask_SQLAlchemy==2.5.1
 line_bot_sdk==1.20.0
-requests==2.26.0
+requests==2.28.1
 SQLAlchemy==1.4.23
