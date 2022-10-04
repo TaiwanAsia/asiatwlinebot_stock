@@ -30,11 +30,6 @@
         "spacing": "sm",
         "contents": [
           {
-            "type": "text",
-            "text": "統一編號",
-            "weight": "bold"
-          },
-          {
             "type": "separator"
           },
           {
@@ -66,14 +61,6 @@
               "label": "股權異動查詢",
               "uri": "https://mops.twse.com.tw/mops/web/stapap1"
             }
-          },
-          {
-            "type": "text",
-            "text": "股票代號",
-            "weight": "bold"
-          },
-          {
-            "type": "separator"
           },
           {
             "type": "button",

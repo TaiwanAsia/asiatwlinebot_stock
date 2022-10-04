@@ -153,7 +153,7 @@ def handle_message(event):
                     candidates.append([candidate['商業名稱'], candidate['統一編號']])
 
             # 載入Flex template
-            FlexMessage = json.load(open('template.json','r',encoding='utf-8'))
+            FlexMessage = json.load(open('templates/template.json','r',encoding='utf-8'))
             FlexMessage['contents'][0]['header']['contents'][0]['text'] = company_name
             candidates_list = []
             
@@ -218,7 +218,7 @@ def handle_postback(event):
         # 未上市熱門股
         if len(companies) > 1:
         
-            FlexMessage = json.load(open('tradeInfo_stock.json','r',encoding='utf-8'))
+            FlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
             BoxTop = FlexMessage['body']['contents'][0]
             BoxTop['contents'][0]['text'] = company_name
 
@@ -244,7 +244,7 @@ def handle_postback(event):
 
             
         else:
-            FlexMessage = json.load(open('tradeInfo.json','r',encoding='utf-8'))
+            FlexMessage = json.load(open('templates/tradeInfo.json','r',encoding='utf-8'))
             BoxTop = FlexMessage['body']['contents'][0]
             BoxTop['contents'][0]['text'] = company_name
             BoxMid = FlexMessage['body']['contents'][1]['contents'][1]['contents'][3]
@@ -269,7 +269,7 @@ def handle_postback(event):
 def search_output(reply_token, company_uni_id, company_name, company_code = ''):
     print(f"\n ------------ 輸出公司查詢結果  {company_uni_id} {company_name} {company_code}------------")
 
-    FlexMessage = json.load(open('company_info.json','r',encoding='utf-8'))
+    FlexMessage = json.load(open('templates/company_info.json','r',encoding='utf-8'))
     FlexMessage['body']['contents'][0]['text'] = f"{company_uni_id} {company_name}"
     elements = FlexMessage['body']['contents'][1]['contents']
     for element in elements:
