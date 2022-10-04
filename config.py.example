@@ -14,3 +14,15 @@ app_config = "mysql+pymysql://root:root@127.0.0.1:3306/asiatwlinebot"
 # handler = WebhookHandler('732633e1970cad234502531cd100ba40')
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@127.0.0.1:3306/linebot"
 # port = 8888
+
+
+# 台股小百科
+line_bot_api = 't8UzlMSXYFSAmYxwsfFWAJJDRdDFOb9O5+fW5prYUIPfhtfzy4YAQqjFz1iafzk+sTxK3pdR0VR1a3slz8X5fSMwu8jGqhA26UIJdEwyk75YEUZqqO1UpyBa+m4BlQSl4wcUMCTLz6LZvx5uhf0AEwdB04t89/1O/w1cDnyilFU='
+# handler = '8fe9468482ca4f59d910a1e546dfc0d5'
+app_config = "mysql+pymysql://root:RickOrNeil@127.0.0.1:3306/linebot_stock"
+
+
+# 台股小百科_test
+line_bot_api = 'mfo037IO4AzDABdqjH98ESquA0AuM49kdHCzped3i5WQdJ3wjFCQqg2NiqnQ3nk3aN3OulPO219sAmNN3IGyk7CxKn8llDoYMIyRI+KExvgCgeEico8DxW95tnDAawaeP4fLlUJVhm60RMNt6tNJkwdB04t89/1O/w1cDnyilFU='
+handler = 'a865896b514cd803691c05330c7f6e17'
+port = 8888

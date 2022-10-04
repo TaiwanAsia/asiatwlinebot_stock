@@ -16,6 +16,10 @@ import random, re, time, _thread
 from datetime import datetime, timedelta, timezone
 import json, requests, urllib.request, chardet
 from bs4 import BeautifulSoup
+import logging
+from crawler import crawler
+from models.shared_db import db
+from models.dataset_day import Dataset_day
 
 
 app = Flask(__name__)
@@ -37,143 +41,9 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 db = SQLAlchemy(app)
 
-
-
-class Dataset_day(db.Model):
-    id         = db.Column(db.Integer, primary_key=True)
-    website_id = db.Column(db.Integer, nullable=False)
-    table_name = db.Column(db.Text, nullable=False)
-    order      = db.Column(db.Integer, nullable=True)
-    company_name = db.Column(db.Text, nullable=True)
-    buy_amount = db.Column(db.Text, nullable=True)
-    buy_high = db.Column(db.Text, nullable=True)
-    buy_low = db.Column(db.Text, nullable=True)
-    buy_average = db.Column(db.Text, nullable=True)
-    buy_average_yesterday = db.Column(db.Text, nullable=True)
-    buy_change_percent = db.Column(db.Text, nullable=True)
-    sell_amount = db.Column(db.Text, nullable=True)
-    sell_high = db.Column(db.Text, nullable=True)
-    sell_low = db.Column(db.Text, nullable=True)
-    sell_average = db.Column(db.Text, nullable=True)
-    sell_average_yesterday = db.Column(db.Text, nullable=True)
-    sell_change_percent = db.Column(db.Text, nullable=True)
-    date = db.Column(db.Date, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
-    def __repr__(self):
-        return '<Dataset_day %r>' % self.dataset_day
-
-class Website(db.Model):
-    id     = db.Column(db.Integer, primary_key=True)
-    name   = db.Column(db.Text, nullable=False)
-    domain = db.Column(db.Text, nullable=False)
-    status = db.Column(db.Text, nullable=False)
-    def __repr__(self):
-        return '<Website %r>' % self.website
-
-# class Company_l_o(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     userid = db.Column(db.String(80), nullable=False)
-#     date = db.Column(db.DateTime, nullable=False)
-#     activity = db.Column(db.Text, nullable=False)
-#     status = db.Column(db.String(80), nullable=False)
-#     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
-#     def __repr__(self):
-#         return '<Company_l_o %r>' % self.company_l_o
-
-
-
 db.init_app(app)
 
 
-
-#################################  爬蟲
-def crawler():
-    while 1 == 1:
-        dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
-        now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
-
-        if now.hour == 14 and now.minute == 12:
-
-            # Clear data
-            sql = "TRUNCATE `linebot_stock`.`dataset_day`;"
-            db.engine.execute(sql)
-
-            ######  必富網熱門Top100 website_id=1  ######
-            print(f"\n ------------ 爬蟲開始: 必富網熱門Top100 ------------")
-            website_id = 1
-            fp = urllib.request.urlopen('https://www.berich.com.tw/DP/OrderList/List_Hot.asp').read()
-            text = fp.decode('Big5')
-            soup = BeautifulSoup(text, features='lxml')
-
-            # Find data
-            target_table = soup.select_one('.sin_title').find_parent('table')
-            target_trs = target_table.find_all('tr')
-        
-            # Set data
-            dataset = []
-            for tr in target_trs:
-                td = tr.find_all('td')
-                row = [i.text for i in td]
-                dataset.append(row)
-
-            # 整理欄位
-            dataset[0][0]  = 'order'
-            dataset[0][6]  = '買昨均'
-            dataset[0][7]  = '買漲跌幅'
-            dataset[0][12] = '賣昨均'
-            dataset[0][13] = '賣漲跌幅'
-
-            dataset_list = []
-            for data in dataset:
-                if data[0] and data[0] != 'order':
-                    dataset_list.append(dict(zip(dataset[0], data)))
-
-            # Insert data
-            for dataset in dataset_list:
-                newInput = Dataset_day(website_id=website_id, table_name='hotTop100', order=dataset['order'],
-                company_name=dataset['未上市櫃股票公司名稱'], buy_amount=dataset['★買張'], buy_high=dataset['買高'], buy_low=dataset['買低']
-                , buy_average=dataset['買均'], buy_average_yesterday=dataset['買昨均'], buy_change_percent=dataset['買漲跌幅'], sell_amount=dataset['★賣張']
-                , sell_high=dataset['賣高'], sell_low=dataset['賣低'], sell_average=dataset['賣均'],
-                sell_average_yesterday=dataset['賣昨均'], sell_change_percent=dataset['賣漲跌幅'])
-                db.session.add(newInput)
-                db.session.commit()
-
-            print(f"\n ------------ 爬蟲結束: 必富網熱門Top100 ------------")
-            ######  必富網結束  ######
-
-
-
-            ######  台灣投資達人熱門Top100 website_id=2  ######
-            print(f"\n ------------ 爬蟲開始: 台灣投資達人熱門Top100 ------------")
-            website_id = 2
-            body = urllib.request.urlopen('http://www.money568.com.tw/Order_Hot.asp').read()
-            soup = BeautifulSoup(body, features='lxml')
-
-            # Locate data
-            target_table = soup.select_one("table.order_table_dv")
-            target_trs = target_table.find_all('tr')
-
-            # Set data
-            dataset = []
-            for idx, tr in enumerate(target_trs):
-                if idx > 0 and idx <= 100:
-                    td = tr.find_all('td')
-                    row = [i.text for i in td]
-                    dataset.append(row)
-            
-            # Insert data
-            for data in dataset:
-                newInput = Dataset_day(website_id=website_id, table_name='hotTop100', company_name=data[1],
-                    buy_amount=data[5], buy_average=data[2], buy_average_yesterday=data[3], buy_change_percent=data[4],
-                    sell_amount=data[9], sell_average=data[6], sell_average_yesterday=data[7], sell_change_percent=data[8])
-                db.session.add(newInput)
-                db.session.commit()
-            
-            print(f"\n ------------ 爬蟲結束: 台灣投資達人熱門Top100 ------------")
-            ######  台灣投資達人結束  ######
-
-
-        time.sleep(58)
     
 
 # 監測
@@ -182,7 +52,6 @@ def callback():
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
     app.logger.info("Request body: " + body)
-    # print('body'+body)
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
@@ -200,13 +69,14 @@ def handle_message(event):
     message = event.message.text
     today = datetime.now().strftime("%Y-%m-%d")
 
+    #### 1 使用者輸入關鍵字查詢
     message == str(message)
 
     # 正規表達過濾出純數字
     pattern = re.compile(r'^[-+]?[-0-9]\d*\.\d*|[-+]?\.?[0-9]\d*$')
     number = pattern.match(message)
 
-    # keyword 是數字
+    #### 1-1 關鍵字為INT
     if number:
         print(f"\n ------------ 統編or股票代號查詢公司  {message} ------------")
 
@@ -214,7 +84,7 @@ def handle_message(event):
         company_code   = ''
         company_name   = ''
 
-        # 先判斷統一編號
+        #### 1-1-1 使用者輸入統一編號
         url      = requests.get("https://company.g0v.ronny.tw/api/show/{0}".format(message))
         text     = url.text
         json_obj = json.loads(text)
@@ -228,7 +98,7 @@ def handle_message(event):
             company_name = json_obj['data']['公司名稱']
 
 
-        # 再判斷股票代號
+        #### 1-1-2 使用者輸入股票代號
         url  = requests.get("https://mis.twse.com.tw/stock/api/getStockInfo.jsp?json=1&delay=0&ex_ch=tse_{0}.tw%7C".format(message))
         text = url.text
         json_obj = json.loads(text)
@@ -247,9 +117,9 @@ def handle_message(event):
         search_output(reply_token, company_uni_id, company_name, company_code)
 
 
-    # keyword 非數字
+    #### 1-2 關鍵字非INT
     else:
-        # 公司名稱搜尋
+        #### 1-2-1 使用者輸入公司名稱
         company_name = message
 
         print(f"\n ------------ 依公司名稱查詢公司 Company_name: {company_name} ------------")
@@ -326,10 +196,10 @@ def handle_postback(event):
     # keyword = str(ts.split("&")[1])
     user_id = event.source.user_id
     reply_token = event.reply_token
-    today = datetime.now().strftime("%Y-%m-%d")
-    todaytime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    nowdate = datetime.now().strftime("%Y-%m-%d")
+    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-
+    #### 2-1 回傳公司資料
     if action == "company_search":
         company_name = str(ts.split("&")[1])
         company_id   = int(ts.split("&")[2])
@@ -337,7 +207,7 @@ def handle_postback(event):
         # 輸出公司查詢結果
         search_output(reply_token, company_id, company_name)
 
-
+    #### 2-2 我想買賣
     if action == "tradeInfo":
         company_name = str(ts.split("&")[1])
         company_id   = int(ts.split("&")[2])
@@ -383,7 +253,7 @@ def handle_postback(event):
 
         line_bot_api.reply_message(reply_token, FlexSendMessage('tradeInfo',FlexMessage))
 
-    
+    #### 3-1 我想買、我想賣
     if action == 'iwanttrade':
         user         = str(ts.split("&")[1])
         act          = str(ts.split("&")[2])
@@ -422,17 +292,13 @@ def search_output(reply_token, company_uni_id, company_name, company_code = ''):
     line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
 
 
-# Message event: Sticker
-@handler.add(MessageEvent, message=StickerMessage)
-def handle_sticker_message(event):
-    print("--------------------STICKER--------------------")
-    reply_token = event.reply_token
-    sticker = random.randint(1988, 2027);
-    line_bot_api.reply_message(event.reply_token,StickerSendMessage(package_id=446, sticker_id=sticker))
 
 
 import os
 if __name__ == "__main__":
+    # 爬蟲執行時間
+    target_time = [12, 2]
+
     port = int(os.environ.get('PORT', config.port))
-    _thread.start_new_thread(crawler, ())
-    app.run(host='0.0.0.0', port=port)
+    _thread.start_new_thread(crawler, (target_time[0], target_time[1], db))
+    app.run(host='0.0.0.0', port=port, debug=False)
