@@ -1,6 +1,4 @@
-from ast import If
 from base64 import encode
-from itertools import count
 from random import random
 from flask import Flask, request, abort
 from linebot import (
@@ -15,10 +13,10 @@ from sqlalchemy import exc
 import random, re, time, _thread
 from datetime import datetime, timedelta, timezone
 import json, requests, urllib.request, chardet, sys
-from bs4 import BeautifulSoup
 import logging
 from crawler import crawler
 from models.shared_db_model import db
+from models.stock_model import Stock
 
 
 app = Flask(__name__)
@@ -77,7 +75,7 @@ def handle_message(event):
     ##########  1-1 關鍵字為INT
     if pattern.match(message):
         company_uni_id = ''
-        company_code   = ''
+        stock_code   = ''
         company_name   = ''
 
         if len(message) == 8:
@@ -96,28 +94,54 @@ def handle_message(event):
                 company_uni_id = message
                 company_name = json_obj['data']['公司名稱']
 
+            if company_name:
+                # 公司名稱 找出 公司統一編號
+                result = get_companyUniId_by_companyName(company_name)
+                if result:
+                    company_uni_id, company_name = result
+                    search_output(reply_token, company_uni_id, company_name, stock_code)
+            else:
+                line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
+
         elif len(message) == 4:
             ##########  1-1-2 使用者輸入股票代號
             print(f"\n ------------ 股票代號查詢公司  {message} ------------")
-            
-            url  = requests.get("https://mis.twse.com.tw/stock/api/getStockInfo.jsp?json=1&delay=0&ex_ch=tse_{0}.tw%7C".format(message))
-            text = url.text
-            json_obj = json.loads(text)
 
-            if json_obj['msgArray']:
-                company_name = json_obj['msgArray'][0]['nf']
-                company_code = message
-            
-            if company_name:
-                url  = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
-                text = url.text
-                json_obj = json.loads(text)
-                company_uni_id = json_obj['data'][0]['統一編號']
+            # 確認公司股票代號是否存在
+            result = check_stockCode(message)
+            if result:
+                company_name, stock_code = result
+
+                # 公司名稱 找出 公司統一編號
+                result = get_companyUniId_by_companyName(company_name)
+                if result:
+                    company_uni_id, company_name = result
+                    search_output(reply_token, company_uni_id, company_name, stock_code)
+
+                else:
+                    # 有股票代號，一定有統一編號
+                    pass
+
+                # url  = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
+                # text = url.text
+                # json_obj = json.loads(text)
+
+                # # 如有公司名稱部分重複，精準找出目標公司
+                # for candidate in json_obj['data']:
+                #     company_uni_id = candidate['統一編號']
+
+                #     if '名稱' in candidate and candidate['名稱'] == company_name:
+                #         company_name = candidate['名稱']
+                #     if '公司名稱' in candidate and candidate['公司名稱'] == company_name:
+                #         company_name = candidate['公司名稱']
+
+                # search_output(reply_token, company_uni_id, company_name, stock_code)
+
+            else:
+                line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
         
         else:
             line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
-
-        search_output(reply_token, company_uni_id, company_name, company_code)
 
 
     ########## 1-2 關鍵字非INT
@@ -161,12 +185,14 @@ def handle_message(event):
             candidates_list = []
             
             for candidate in candidates:
+                company_uni_id = candidate[1]
+                company_name   = candidate[0]
                 cand =  {
                     "type": "button",
                     "action": {
                         "type": "postback",
-                        "label": f"{candidate[0]}",
-                        "data": f"company_search&{candidate[0]}&{candidate[1]}"
+                        "label": f"{company_name}",
+                        "data": f"company_search&{company_uni_id}&{company_name}"
                     }
                 }
                 candidates_list.append(cand)
@@ -204,11 +230,11 @@ def handle_postback(event):
 
     ########## 2-1 回傳公司資料
     if action == "company_search":
-        company_name = str(ts.split("&")[1])
-        company_id   = int(ts.split("&")[2])
+        company_uni_id = int(ts.split("&")[1])
+        company_name   = str(ts.split("&")[2])
 
         # 輸出公司查詢結果
-        search_output(reply_token, company_id, company_name)
+        search_output(reply_token, company_uni_id, company_name)
 
     ########## 2-2 我想買賣
     if action == "tradeInfo":
@@ -269,8 +295,8 @@ def handle_postback(event):
 ######### 以下放多次使用的 def #########
 
 # 輸出公司查詢結果
-def search_output(reply_token, company_uni_id, company_name, company_code = ''):
-    print(f"\n ------------ 輸出公司查詢結果  {company_uni_id} {company_name} {company_code}------------")
+def search_output(reply_token, company_uni_id, company_name, stock_code = ''):
+    print(f"\n ------------ 輸出公司查詢結果  {company_uni_id} {company_name} {stock_code}------------")
 
     FlexMessage = json.load(open('templates/company_info.json','r',encoding='utf-8'))
     FlexMessage['body']['contents'][0]['text'] = f"{company_uni_id} {company_name}"
@@ -288,13 +314,52 @@ def search_output(reply_token, company_uni_id, company_name, company_code = ''):
                 elif action_label == '股權異動查詢':
                     pass
                 else:
-                    element['action']['uri'] = str(element['action']['uri']) + f"{company_code}"
+                    element['action']['uri'] = str(element['action']['uri']) + f"{stock_code}"
             if action_type == 'postback':
                 element['action']['data'] = str(element['action']['data']) + f"{company_name}&{company_uni_id}"
 
     line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
 
 
+# 用 公司名稱 找出 公司統一編號
+def get_companyUniId_by_companyName(company_name):
+    if not company_name:
+        return False
+    
+    url  = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
+    text = url.text
+    json_obj = json.loads(text)
+
+    if not json_obj['data']:
+        return False
+
+    # 如有公司名稱部分重複，精準找出目標公司
+    for candidate in json_obj['data']:
+        company_uni_id = candidate['統一編號']
+
+        if '名稱' in candidate and candidate['名稱'] == company_name:
+            company_name = candidate['名稱']
+        if '公司名稱' in candidate and candidate['公司名稱'] == company_name:
+            company_name = candidate['公司名稱']
+    return [company_uni_id, company_name]
+        
+        
+
+# 確認公司股票代號是否存在
+def check_stockCode(stock_code):
+    url  = requests.get("https://mis.twse.com.tw/stock/api/getStockInfo.jsp?json=1&delay=0&ex_ch=tse_{0}.tw%7C".format(stock_code))
+    text = url.text
+    json_obj = json.loads(text)
+
+    if not json_obj['msgArray']:
+        return False
+    
+    company_name = json_obj['msgArray'][0]['nf']
+    stock_code = stock_code
+    return [company_name, stock_code]
+    
+        
+    
 
 
 import os

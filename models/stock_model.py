@@ -19,4 +19,4 @@ class Stock(db.Model):
 
     # In Python, __repr__ is a special method used to represent a class’s objects as a string.
     def __repr__(self):
-        return '<Stock %r>' % self.stock
+        return '<Stock %r>' % self.stock_name
