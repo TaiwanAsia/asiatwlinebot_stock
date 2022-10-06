@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from .shared_db import db
+from .shared_db_model import db
 
 
 class Dataset_day(db.Model):
