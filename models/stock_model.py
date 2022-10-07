@@ -12,13 +12,13 @@ class Stock(db.Model):
     category     = db.Column(db.Text, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
     
-    # def __init__(self, stock_code, stock_name, stock_full_name,listing_date, category):
-    #     self.stock_code = stock_code
-    #     self.stock_name = stock_name
-    #     self.stock_full_name = stock_full_name
-    #     self.listing_date = listing_date
-    #     self.category = category
+    def __init__(self, stock_code, stock_name, stock_full_name,listing_date, category):
+        self.stock_code = stock_code
+        self.stock_name = stock_name
+        self.stock_full_name = stock_full_name
+        self.listing_date = listing_date
+        self.category = category
 
     # In Python, __repr__ is a special method used to represent a class’s objects as a string.
     def __repr__(self):
-        return '<Stock %r>' % self.stock_name
+        return '<Stock %r>' % self.stock_full_name

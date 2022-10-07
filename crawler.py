@@ -171,7 +171,7 @@ def crawler(target_hour, target_minute, db, debuging, app):
                 sql = "SELECT `stock_code` FROM `stock`;"
                 stock_codes = db.engine.execute(sql).fetchall()
                 print(f"\n ------------ 爬蟲開始: 更新上市公司全名 ------------")
-                print(f"\n ------------ 預計時間: 190秒 = 3分10秒  ------------")
+                print(f"\n ------------ 預計時間: 190秒 = 3分10秒  ------------\n")
 
                 target_url = ''
                 urls = []
@@ -209,6 +209,8 @@ def crawler(target_hour, target_minute, db, debuging, app):
                     
                     # 以防被鎖IP
                     time.sleep(10)
+                
+                print(f"\n ------------ 爬蟲結束: 更新上市公司全名 ------------")
                 
 
             time.sleep(58)
