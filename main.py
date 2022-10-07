@@ -368,13 +368,13 @@ if __name__ == "__main__":
     # Debug模式將無條件執行爬蟲
     debug = False
     if len(sys.argv) > 1:
-        if sys.argv[1] == 1 or sys.argv[1] == 'True':
+        if sys.argv[1] == '1' or sys.argv[1] == 'True':
             debug = True
 
     # 爬蟲執行時間
     target_time = [17, 10]
     
-    _thread.start_new_thread(crawler, (target_time[0], target_time[1], db, debug))
+    _thread.start_new_thread(crawler, (target_time[0], target_time[1], db, debug, app))
     port = int(os.environ.get('PORT', config.port))
     app.run(host='0.0.0.0', port=port, debug=False)
     

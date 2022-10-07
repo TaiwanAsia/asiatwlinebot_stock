@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
-import urllib.request
-import requests
-import time
+import urllib.request, requests, time, json
 from bs4 import BeautifulSoup
 from models.dataset_day_model import Dataset_day
 from models.stock_model import Stock
@@ -10,10 +8,11 @@ from models.notstock_model import Notstock
 
 
 #################################  爬蟲
-def crawler(target_hour, target_minute, db, debuging):
+def crawler(target_hour, target_minute, db, debuging, app):
     while 1 == 1:
         dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
+
         if (now.hour == target_hour and now.minute == target_minute) or debuging:
             print("\n*****  crawling...  *****")
             print(now,"\n")
@@ -82,7 +81,7 @@ def crawler(target_hour, target_minute, db, debuging):
                     name = col_1.split("　")[1]
                     listing_date = tds[2].text.strip()
                     category = tds[4].text.strip()
-                    insert_data = {'stock_code': code, 'stock_name': name, 'listing_date': listing_date, 'category': category}
+                    insert_data = {'stock_code': code, 'stock_name': name, 'stock_full_name': '', 'listing_date': listing_date, 'category': category}
                     new_stock = Stock(**insert_data)
                     db.session.add(new_stock)
             db.session.commit()
@@ -165,5 +164,51 @@ def crawler(target_hour, target_minute, db, debuging):
             
             print(f"\n ------------ 爬蟲結束: 台灣投資達人熱門Top100 ------------")
             ######  台灣投資達人結束  ######
+
+
+            #####  更新公司全名  #####
+            with app.app_context():
+                sql = "SELECT `stock_code` FROM `stock`;"
+                stock_codes = db.engine.execute(sql).fetchall()
+                print(f"\n ------------ 爬蟲開始: 更新上市公司全名 ------------")
+                print(f"\n ------------ 預計時間: 190秒 = 3分10秒  ------------")
+
+                target_url = ''
+                urls = []
+                count = 0
+
+                for stock_code in stock_codes:
+                    count += 1
+
+                    url = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp?json=1&delay=0&ex_ch=tse_{0}.tw%7C"
+                    position1 = url.find("tse_")
+                    position2 = url.rfind(".tw")
+                    target = f"tse_{stock_code[0]}.tw|"
+                    target_url += target
+
+                    if count % 50 == 0:
+                        target_url = target_url.strip()
+                        target_url = target_url[:-4]
+                        new_url = url[:position1] + target_url + url[position2:]
+                        urls.append(new_url)
+                        target_url= ''
+
+                for index, url in enumerate(urls):
+                    print(f"--------------------   第{index}批  送出請求   --------------------")
+
+                    url  = requests.get(url)
+                    text = url.text
+                    json_obj = json.loads(text)
+
+                    print(f"--------------------   第{index}批  寫入資料庫   --------------------")
+                    for cmp in json_obj['msgArray']:
+                        stock_full_name = cmp['nf']
+                        stock_code = cmp['c']
+                        sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}' WHERE stock_code = '{stock_code}'"
+                        db.engine.execute(sql)
+                    
+                    # 以防被鎖IP
+                    time.sleep(10)
+                
 
             time.sleep(58)
