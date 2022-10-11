@@ -1,19 +1,92 @@
 from datetime import datetime, timedelta, timezone
-import urllib.request
-import time
+import urllib.request, requests, time, json
 from bs4 import BeautifulSoup
-from models.dataset_day import Dataset_day
+from models.dataset_day_model import Dataset_day
+from models.stock_model import Stock
+from models.notstock_model import Notstock
 
 
 
 #################################  爬蟲
-def crawler(target_hour, target_minute, db):
+def crawler(target_hour, target_minute, db, debuging, app):
     while 1 == 1:
         dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
-        if now.hour == target_hour and now.minute == target_minute:
-            print(now)
 
+        if (now.hour == target_hour and now.minute == target_minute) or debuging:
+            print("\n*****  crawling...  *****")
+            print(now,"\n")
+
+            ##### 未上市、櫃公司
+            url = 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=1'
+            html = requests.get(url)
+            html.encoding = "MS950"
+            res_html = html.text
+            soup = BeautifulSoup(res_html, 'html.parser')
+
+            # Locate data
+            target_table = soup.select_one("table.h4")
+            target_trs = target_table.find_all('tr')
+
+            # Clear data
+            try:
+                sql = "TRUNCATE `linebot_stock`.`notstock`;"
+                db.engine.execute(sql)
+            except:
+                db.session.rollback()
+
+            for tr in target_trs:
+                filtered_keyword = ['有價證券代號及名稱', '股票']
+                tds = tr.find_all('td')
+                col_1 = tds[0].text.strip()
+
+                if len(tds) > 1 and col_1 not in filtered_keyword:
+                    code = col_1.split("　")[0]
+                    name = col_1.split("　")[1]
+                    listing_date = tds[2].text.strip()
+                    category = tds[4].text.strip()
+                    insert_data = {'notstock_code': code, 'notstock_name': name, 'listing_date': listing_date, 'category': category}
+                    new_stock = Notstock(**insert_data)
+                    db.session.add(new_stock)
+            db.session.commit()
+
+            ##### 上市、櫃公司
+            url = 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=2'
+            html = requests.get(url)
+            html.encoding = "MS950"
+            res_html = html.text
+            soup = BeautifulSoup(res_html, 'html.parser')
+
+            # Locate data
+            target_table = soup.select_one("table.h4")
+            target_trs = target_table.find_all('tr')
+
+            # Clear data
+            try:
+                sql = "TRUNCATE `linebot_stock`.`stock`;"
+                db.engine.execute(sql)
+            except:
+                db.session.rollback()
+
+            for tr in target_trs:
+                filtered_keyword = ['有價證券代號及名稱', '股票']
+                tds = tr.find_all('td')
+                col_1 = tds[0].text.strip()
+
+                if col_1 == '上市認購(售)權證':
+                    break
+
+                if len(tds) > 1 and col_1 not in filtered_keyword:
+                    code = col_1.split("　")[0]
+                    name = col_1.split("　")[1]
+                    listing_date = tds[2].text.strip()
+                    category = tds[4].text.strip()
+                    insert_data = {'stock_code': code, 'stock_name': name, 'stock_full_name': '', 'listing_date': listing_date, 'category': category}
+                    new_stock = Stock(**insert_data)
+                    db.session.add(new_stock)
+            db.session.commit()
+            
+            ###################### 未上市股價
             # Clear data
             sql = "TRUNCATE `linebot_stock`.`dataset_day`;"
             db.engine.execute(sql)
@@ -23,7 +96,7 @@ def crawler(target_hour, target_minute, db):
             website_id = 1
             fp = urllib.request.urlopen('https://www.berich.com.tw/DP/OrderList/List_Hot.asp').read()
             text = fp.decode('Big5')
-            soup = BeautifulSoup(text, features='lxml')
+            soup = BeautifulSoup(text, features='html.parser')
 
             # Find data
             target_table = soup.select_one('.sin_title').find_parent('table')
@@ -67,7 +140,7 @@ def crawler(target_hour, target_minute, db):
             print(f"\n ------------ 爬蟲開始: 台灣投資達人熱門Top100 ------------")
             website_id = 2
             body = urllib.request.urlopen('http://www.money568.com.tw/Order_Hot.asp').read()
-            soup = BeautifulSoup(body, features='lxml')
+            soup = BeautifulSoup(body, features='html.parser')
 
             # Locate data
             target_table = soup.select_one("table.order_table_dv")
@@ -91,5 +164,53 @@ def crawler(target_hour, target_minute, db):
             
             print(f"\n ------------ 爬蟲結束: 台灣投資達人熱門Top100 ------------")
             ######  台灣投資達人結束  ######
+
+
+            #####  更新公司全名  #####
+            with app.app_context():
+                sql = "SELECT `stock_code` FROM `stock`;"
+                stock_codes = db.engine.execute(sql).fetchall()
+                print(f"\n ------------ 爬蟲開始: 更新上市公司全名 ------------")
+                print(f"\n ------------ 預計時間: 190秒 = 3分10秒  ------------\n")
+
+                target_url = ''
+                urls = []
+                count = 0
+
+                for stock_code in stock_codes:
+                    count += 1
+
+                    url = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp?json=1&delay=0&ex_ch=tse_{0}.tw%7C"
+                    position1 = url.find("tse_")
+                    position2 = url.rfind(".tw")
+                    target = f"tse_{stock_code[0]}.tw|"
+                    target_url += target
+
+                    if count % 50 == 0:
+                        target_url = target_url.strip()
+                        target_url = target_url[:-4]
+                        new_url = url[:position1] + target_url + url[position2:]
+                        urls.append(new_url)
+                        target_url= ''
+
+                for index, url in enumerate(urls):
+                    print(f"--------------------   第{index}批  送出請求   --------------------")
+
+                    url  = requests.get(url)
+                    text = url.text
+                    json_obj = json.loads(text)
+
+                    print(f"--------------------   第{index}批  寫入資料庫   --------------------")
+                    for cmp in json_obj['msgArray']:
+                        stock_full_name = cmp['nf']
+                        stock_code = cmp['c']
+                        sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}' WHERE stock_code = '{stock_code}'"
+                        db.engine.execute(sql)
+                    
+                    # 以防被鎖IP
+                    time.sleep(10)
+                
+                print(f"\n ------------ 爬蟲結束: 更新上市公司全名 ------------")
+                
 
             time.sleep(58)
