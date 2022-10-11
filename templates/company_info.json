@@ -19,10 +19,24 @@
         "type": "text",
         "text": "公司查詢",
         "weight": "bold",
-        "size": "xl",
+        "size": "lg",
         "align": "center",
         "color": "#d92652",
         "margin": "md"
+      },
+      {
+        "type": "text",
+        "text": "統一編號",
+        "offsetTop": "md",
+        "size": "md",
+        "margin": "md"
+      },
+      {
+        "type": "text",
+        "text": "股票代號",
+        "size": "md",
+        "margin": "md",
+        "offsetTop": "lg"
       },
       {
         "type": "box",
@@ -81,20 +95,11 @@
               "label": "最近登錄興櫃公司",
               "uri": "https://www.tpex.org.tw/web/regular_emerging/apply_schedule/applicant_emerging/applicant_emerging_companies.php?l=zh-tw&stk_code="
             }
-          },
-          {
-            "type": "button",
-            "action": {
-              "type": "postback",
-              "label": "我想買賣",
-              "data": "tradeInfo&"
-            },
-            "style": "primary",
-            "margin": "xxl"
           }
         ],
         "flex": 0,
-        "margin": "lg"
+        "margin": "lg",
+        "offsetTop": "md"
       }
     ]
   }
