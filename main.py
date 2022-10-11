@@ -72,12 +72,13 @@ def handle_message(event):
     # 正規表達過濾出純數字
     pattern = re.compile(r'^[-+]?[-0-9]\d*\.\d*|[-+]?\.?[0-9]\d*$')
 
+    company_uni_id = ''
+    stock_code   = ''
+    company_name   = ''
+
     ##########  1-1 關鍵字為INT
     if pattern.match(message):
-        company_uni_id = ''
-        stock_code   = ''
-        company_name   = ''
-
+        
         if len(message) == 8:
             ##########  1-1-1 使用者輸入統一編號
             print(f"\n ------------ 統一編號查詢公司  {message} ------------")
@@ -134,8 +135,19 @@ def handle_message(event):
     else:
         ########## 1-2-1 使用者輸入公司名稱
         company_name = message
+        stock_code = False
 
         print(f"\n ------------ 依公司名稱查詢公司 Company_name: {company_name} ------------")
+
+        # 如輸入簡稱，則直接替換公司全名 company_name
+        sql = 'SELECT * FROM `stock` where `stock_name` = "{0}"'.format(company_name)
+        company = db.engine.execute(sql).fetchone()
+        if company is not None:
+            stock_code   = company[1]
+            company_name = company[3]
+            company_uni_id = get_companyUniId_by_companyName(company_name)[0]
+            search_output(reply_token, company_uni_id, company_name, stock_code)
+            return
 
         url = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
         text = url.text
@@ -146,14 +158,23 @@ def handle_message(event):
             line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料耶..."))
         
         elif json_obj_len == 1:
-            company_uni_id = json_obj['data'][0]['統一編號']
+            candidate = json_obj['data'][0]
+            company_uni_id = candidate['統一編號']
 
-            if '名稱' in json_obj['data'][0]:
-                company_name = json_obj['data'][0]['名稱']
-            if '公司名稱' in json_obj['data'][0]:
-                company_name = json_obj['data'][0]['公司名稱']
+            if '名稱' in candidate and candidate['名稱'] == company_name:
+                company_name = candidate['名稱']
+            if '公司名稱' in candidate and candidate['公司名稱'] == company_name:
+                company_name = candidate['公司名稱']
 
-            search_output(reply_token, company_uni_id, company_name)
+            if company_name:
+                if stock_code is False:
+                    # 公司名稱 找出 股票代號
+                    result = get_stockCode_by_companyName(company_name)
+                    if result:
+                        company_name, stock_code = result
+                search_output(reply_token, company_uni_id, company_name, stock_code)
+            else:
+                line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料耶..."))
             
         else:
             candidates = []
@@ -173,12 +194,17 @@ def handle_message(event):
             for candidate in candidates:
                 company_uni_id = candidate[1]
                 company_name   = candidate[0]
+                if company_name:
+                    # 公司名稱 找出 股票代號
+                    result = get_stockCode_by_companyName(company_name)
+                    if result:
+                        company_name, stock_code = result
                 cand =  {
                     "type": "button",
                     "action": {
                         "type": "postback",
                         "label": f"{company_name}",
-                        "data": f"company_search&{company_uni_id}&{company_name}"
+                        "data": f"company_search&{company_uni_id}&{company_name}&{stock_code}"
                     }
                 }
                 candidates_list.append(cand)
@@ -218,9 +244,10 @@ def handle_postback(event):
     if action == "company_search":
         company_uni_id = int(ts.split("&")[1])
         company_name   = str(ts.split("&")[2])
+        stock_code     = str(ts.split("&")[3])
 
         # 輸出公司查詢結果
-        search_output(reply_token, company_uni_id, company_name)
+        search_output(reply_token, company_uni_id, company_name, stock_code)
 
     ########## 2-2 我想買賣
     if action == "tradeInfo":
@@ -333,11 +360,12 @@ def get_companyUniId_by_companyName(company_name):
 
 # 用 公司名稱 找出 股票代號
 def get_stockCode_by_companyName(company_name):
-    if not company_name:
-        return False
-    print('company_name: ', company_name)
-    company = Stock.query.filter_by(stock_full_name = company_name).first()
-    return [company.stock_full_name, company.stock_code]
+    if company_name:
+        sql = 'SELECT * FROM stock where `stock_full_name` = "{0}"'.format(company_name)
+        company = db.engine.execute(sql).fetchone()
+        if company is not None:
+            return [company[3], company[1]]
+    return False
 
         
         
