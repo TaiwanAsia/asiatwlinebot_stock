@@ -307,13 +307,15 @@ def handle_postback(event):
 
 ######### 以下放多次使用的 def #########
 
-# 輸出公司查詢結果
+# 輸出公司查詢結果 : 基本資料
 def search_output(reply_token, company_uni_id, company_name, stock_code = ''):
     print(f"\n ------------ 輸出公司查詢結果  {company_uni_id} {company_name} {stock_code}------------")
 
     FlexMessage = json.load(open('templates/company_info.json','r',encoding='utf-8'))
-    FlexMessage['body']['contents'][0]['text'] = f"{company_uni_id} {company_name}"
-    elements = FlexMessage['body']['contents'][1]['contents']
+    FlexMessage['body']['contents'][0]['text'] = f"{company_name}"
+    FlexMessage['body']['contents'][1]['text'] += f"     {company_uni_id}"
+    FlexMessage['body']['contents'][2]['text'] += f"     {stock_code}"
+    elements = FlexMessage['body']['contents'][3]['contents']
     for element in elements:
         ele_type     = element['type']
         if ele_type == 'button':
@@ -330,8 +332,22 @@ def search_output(reply_token, company_uni_id, company_name, stock_code = ''):
                     element['action']['uri'] = str(element['action']['uri']) + f"{stock_code}"
             if action_type == 'postback':
                 element['action']['data'] = str(element['action']['data']) + f"{company_name}&{company_uni_id}"
+    CarouselMessage = {
+        "type": "carousel",
+        "contents": []
+    }
+    CarouselMessage['contents'].append(FlexMessage)
 
-    line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
+    ### 未完成
+    # StockInfo = search_output_stockInfo(company_name)
+    # CarouselMessage['contents'].append(StockInfo)
+
+    line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',CarouselMessage))
+
+
+# 輸出公司查詢結果 : 股市資料
+def search_output_stockInfo(company_name):
+    print(f"\n ------------ 輸出公司股市資料  {company_name}------------")
 
 
 # 用 公司名稱 找出 公司統一編號
