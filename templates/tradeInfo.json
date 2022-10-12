@@ -562,7 +562,7 @@
                 "action": {
                   "type": "postback",
                   "label": "我要賣",
-                  "data": "hello"
+                  "data": "iwanttrade"
                 },
                 "style": "primary",
                 "color": "#a37676",
@@ -578,7 +578,7 @@
                 "action": {
                   "type": "postback",
                   "label": "我要買",
-                  "data": "hello"
+                  "data": "iwanttrade"
                 },
                 "style": "primary",
                 "color": "#a37676",
