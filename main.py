@@ -100,7 +100,7 @@ def handle_message(event):
                 result = get_stockCode_by_companyName(company_name)
                 if result:
                     company_name, stock_code = result
-                search_output(reply_token, company_uni_id, company_name, stock_code)
+                search_output(reply_token, company_uni_id, company_name, stock_code, user_id)
 
             else:
                 line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
@@ -118,7 +118,7 @@ def handle_message(event):
                 result = get_companyUniId_by_companyName(company_name)
                 if result:
                     company_uni_id, company_name = result
-                    search_output(reply_token, company_uni_id, company_name, stock_code)
+                    search_output(reply_token, company_uni_id, company_name, stock_code, user_id)
 
                 else:
                     # 有股票代號，一定有統一編號
@@ -139,14 +139,19 @@ def handle_message(event):
 
         print(f"\n ------------ 依公司名稱查詢公司 Company_name: {company_name} ------------")
 
+        print(str(datetime.now()))
+
         # 如輸入簡稱，則直接替換公司全名 company_name
-        sql = 'SELECT * FROM `stock` where `stock_name` = "{0}"'.format(company_name)
+        sql = f"SELECT * FROM stock where stock_name = '{company_name}'"
         company = db.engine.execute(sql).fetchone()
+
+        print(str(datetime.now()))
+
         if company is not None:
             stock_code   = company[1]
             company_name = company[3]
             company_uni_id = get_companyUniId_by_companyName(company_name)[0]
-            search_output(reply_token, company_uni_id, company_name, stock_code)
+            search_output(reply_token, company_uni_id, company_name, stock_code, user_id)
             return
 
         url = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
@@ -172,7 +177,7 @@ def handle_message(event):
                     result = get_stockCode_by_companyName(company_name)
                     if result:
                         company_name, stock_code = result
-                search_output(reply_token, company_uni_id, company_name, stock_code)
+                search_output(reply_token, company_uni_id, company_name, stock_code, user_id)
             else:
                 line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料耶..."))
             
@@ -247,7 +252,7 @@ def handle_postback(event):
         stock_code     = str(ts.split("&")[3])
 
         # 輸出公司查詢結果
-        search_output(reply_token, company_uni_id, company_name, stock_code)
+        search_output(reply_token, company_uni_id, company_name, stock_code, user_id)
 
     ########## 2-2 我想買賣
     if action == "tradeInfo":
@@ -300,20 +305,23 @@ def handle_postback(event):
         user         = str(ts.split("&")[1])
         act          = str(ts.split("&")[2])
         company_name = ts.split("&")[3]
+        company_type = ts.split("&")[4]
         print("\n\n")
-        print(user + ' ' + act + ' ' + company_name)
+        print(user + ' ' + act + ' ' + company_name + company_type)
 
 
 
 ######### 以下放多次使用的 def #########
 
-# 輸出公司查詢結果
-def search_output(reply_token, company_uni_id, company_name, stock_code = ''):
+# 輸出公司查詢結果 : 基本資料
+def search_output(reply_token, company_uni_id, company_name, stock_code, user_id):
     print(f"\n ------------ 輸出公司查詢結果  {company_uni_id} {company_name} {stock_code}------------")
 
     FlexMessage = json.load(open('templates/company_info.json','r',encoding='utf-8'))
-    FlexMessage['body']['contents'][0]['text'] = f"{company_uni_id} {company_name}"
-    elements = FlexMessage['body']['contents'][1]['contents']
+    FlexMessage['body']['contents'][0]['text'] = f"{company_name}"
+    FlexMessage['body']['contents'][1]['text'] += f"     {company_uni_id}"
+    FlexMessage['body']['contents'][2]['text'] += f"     {stock_code}"
+    elements = FlexMessage['body']['contents'][3]['contents']
     for element in elements:
         ele_type     = element['type']
         if ele_type == 'button':
@@ -331,7 +339,77 @@ def search_output(reply_token, company_uni_id, company_name, stock_code = ''):
             if action_type == 'postback':
                 element['action']['data'] = str(element['action']['data']) + f"{company_name}&{company_uni_id}"
 
-    line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',FlexMessage))
+    CarouselMessage = {
+        "type": "carousel",
+        "contents": []
+    }
+    CarouselMessage['contents'].append(FlexMessage)
+    StockInfo = search_output_stockInfo(company_name, user_id)
+    CarouselMessage['contents'].append(StockInfo)
+
+    line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',CarouselMessage))
+
+
+
+# 輸出公司查詢結果 : 股市資料
+def search_output_stockInfo(company_name, user_id):
+    print(f"\n ------------ 輸出公司股市資料  {company_name}------------")
+
+    FlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
+
+    sql = 'SELECT * FROM `stock` where `stock_full_name` = "{0}"'.format(company_name)
+    company = db.engine.execute(sql).fetchone()
+
+    # 上市
+    if company is not None:
+        company_type = 1
+        BoxTop = FlexMessage['body']['contents'][0]
+        BoxTop['contents'][0]['text'] = company_name
+        WantBox_sell  = FlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+        WantBox_buy = FlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+
+        WantBox_sell  = FlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+        WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company_name[:4]}&{company_type}"
+        WantBox_buy = FlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+        WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company_name[:4]}&{company_type}"
+    
+    # 未上市
+    else:
+        company_type = 2
+        sql = 'SELECT * FROM dataset_day where `company_name` like "%%{0}%%"'.format(company_name[:4])
+        companies = db.engine.execute(sql).fetchall()
+        # 尚未遇到未上市名稱前4字相同問題，目前只取第一筆。
+
+        if len(companies) > 1:
+            BoxTop = FlexMessage['body']['contents'][0]
+            BoxTop['contents'][0]['text'] = company_name
+
+            Target_buy  = FlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
+            Target_sell = FlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][1]
+            
+            sql = 'SELECT buy_amount FROM dataset_day where `website_id` = 1 and `company_name` like "%%{0}%%"'.format(company_name[:4])
+            max_buy_amount = db.engine.execute(sql).fetchone()[0]
+            Target_buy['contents'][0]['text'] = max_buy_amount
+            Target_buy['contents'][2]['text'] = companies[0]['buy_average']
+
+            sql = 'SELECT sell_amount FROM dataset_day where `website_id` = 1 and `company_name` like "%%{0}%%"'.format(company_name[:4])
+            max_sell_amount = db.engine.execute(sql).fetchone()[0]
+            Target_sell['contents'][0]['text'] = max_sell_amount
+            Target_sell['contents'][2]['text'] = companies[0]['sell_average']
+
+            WantBox_sell  = FlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+            WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company_name[:4]}&{company_type}"
+            WantBox_buy = FlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+            WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company_name[:4]}&{company_type}"
+            
+        else:
+            FlexMessage = json.load(open('templates/tradeInfo.json','r',encoding='utf-8'))
+            BoxTop = FlexMessage['body']['contents'][0]
+            BoxTop['contents'][0]['text'] = company_name
+            BoxTop['contents'][1]['text'] = "未發行股票"
+            FlexMessage['body']['contents'].pop(1)
+
+    return FlexMessage
 
 
 # 用 公司名稱 找出 公司統一編號
