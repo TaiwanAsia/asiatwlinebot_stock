@@ -1,0 +1,91 @@
+{
+    "type": "bubble",
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "text",
+          "text": "台積電",
+          "weight": "bold",
+          "size": "xl"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "margin": "lg",
+          "spacing": "sm",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "2022年",
+                  "weight": "bold",
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "box",
+              "layout": "baseline",
+              "spacing": "sm",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "美禁令恐怖？專家曝台積電最後下場：太驚人",
+                  "color": "#0645AD",
+                  "size": "sm",
+                  "flex": 9,
+                  "action": {
+                    "type": "uri",
+                    "label": "action",
+                    "uri": "https://tw.stock.yahoo.com/news/%E7%BE%8E%E7%A6%81%E4%BB%A4%E6%81%90%E6%80%96-%E5%B0%88%E5%AE%B6%E6%9B%9D%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%9C%80%E5%BE%8C%E4%B8%8B%E5%A0%B4-%E5%A4%AA%E9%A9%9A%E4%BA%BA-042111231.html"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": "10-14",
+                  "wrap": true,
+                  "color": "#666666",
+                  "size": "sm",
+                  "flex": 2,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "box",
+              "layout": "baseline",
+              "spacing": "sm",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "《半導體》台積電強彈5% 外資續按讚、惟普降目標價",
+                  "color": "#0645AD",
+                  "size": "sm",
+                  "action": {
+                    "type": "uri",
+                    "label": "action",
+                    "uri": "https://tw.stock.yahoo.com/news/%E5%8D%8A%E5%B0%8E%E9%AB%94-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E5%BC%B7%E5%BD%885-%E5%A4%96%E8%B3%87%E7%BA%8C%E6%8C%89%E8%AE%9A-%E6%83%9F%E6%99%AE%E9%99%8D%E7%9B%AE%E6%A8%99%E5%83%B9-035856770.html"
+                  },
+                  "flex": 9
+                },
+                {
+                  "type": "text",
+                  "text": "10-14",
+                  "wrap": true,
+                  "color": "#666666",
+                  "size": "sm",
+                  "flex": 2,
+                  "align": "end"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }

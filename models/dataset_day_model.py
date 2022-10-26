@@ -45,8 +45,8 @@ class Dataset_day(db.Model):
         self.updated_at = updated_at
 
     def find_by_name(name): # 取前n個字，n為輸入字串長度    例: 勝華則name[:2]、台積電則name[:3]
-        l = len(name)
-        return Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:l]))).first()
+        # l = len(name)
+        return Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:2]))).first()
 
     def __repr__(self):
-        return '<Dataset_day %r>' % self.dataset_day
+        return '<Dataset_day %r buy_amount: %r buy_average:%r sell_amount:%r sell_average:%r>' % (self.company_name, self.buy_amount, self.buy_average, self.sell_amount, self.sell_average)

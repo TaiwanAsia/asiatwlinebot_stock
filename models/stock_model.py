@@ -21,6 +21,12 @@ class Stock(db.Model):
         self.stock_type = stock_type
         self.category = category
 
+    def find_by_name(name):
+        return Stock.query.filter(Stock.stock_name.like('%{}%'.format(name[:2]))).first()
+
+    def find_by_fullname(name):
+        return Stock.query.filter_by(stock_full_name=name).first()
+
     # In Python, __repr__ is a special method used to represent a class’s objects as a string.
     def __repr__(self):
         return '<Stock %r>' % self.stock_full_name
