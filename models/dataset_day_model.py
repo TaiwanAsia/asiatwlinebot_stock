@@ -22,5 +22,31 @@ class Dataset_day(db.Model):
     sell_change_percent = db.Column(db.Text, nullable=True)
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
+
+    def __init__(self, website_id, table_name, order, company_name, buy_amount, buy_average, buy_average_yesterday, buy_change_percent,
+        sell_amount, sell_average, sell_average_yesterday, sell_change_percent, buy_high=None, buy_low=None, sell_high=None, sell_low=None, date=None, updated_at=None):
+        self.website_id = website_id
+        self.table_name = table_name
+        self.order = order
+        self.company_name = company_name
+        self.buy_amount = buy_amount
+        self.buy_high = buy_high
+        self.buy_low = buy_low
+        self.buy_average = buy_average
+        self.buy_average_yesterday = buy_average_yesterday
+        self.buy_change_percent = buy_change_percent
+        self.sell_amount = sell_amount
+        self.sell_high = sell_high
+        self.sell_low = sell_low
+        self.sell_average = sell_average
+        self.sell_average_yesterday = sell_average_yesterday
+        self.sell_change_percent = sell_change_percent
+        self.date = date
+        self.updated_at = updated_at
+
+    def find_by_name(name): # 取前n個字，n為輸入字串長度    例: 勝華則name[:2]、台積電則name[:3]
+        l = len(name)
+        return Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:l]))).first()
+
     def __repr__(self):
         return '<Dataset_day %r>' % self.dataset_day

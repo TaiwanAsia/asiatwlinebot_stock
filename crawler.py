@@ -85,7 +85,7 @@ def crawler(target_hour, target_minute, db, debugging, app):
         if (now.hour == target_hour and now.minute == target_minute) or debugging:
             print("*****  CRAWLING...  *****",now,"\n")
 
-            ##### 1未上市、櫃公司
+            ##### 1 未上市、櫃公司
             url = 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=1'
             html = requests.get(url)
             html.encoding = "MS950"
@@ -104,7 +104,7 @@ def crawler(target_hour, target_minute, db, debugging, app):
                 col_1 = tds[0].text.strip()
                 if len(tds) > 1 and col_1 not in filtered_keyword:
                     code = col_1.split("　")[0]
-                    name = col_1.split("　")[1]
+                    name = col_1.split("　")[1].replace("臺","台")
                     listing_date = tds[2].text.strip()
                     category = tds[4].text.strip()
                     insert_data = {'stock_code': code, 'stock_name': name, 'stock_full_name': '', 'listing_date': listing_date, 'stock_type': 1, 'category': category}
@@ -130,7 +130,7 @@ def crawler(target_hour, target_minute, db, debugging, app):
                     break
                 if len(tds) > 1 and col_1 not in filtered_keyword:
                     code = col_1.split("　")[0]
-                    name = col_1.split("　")[1]
+                    name = col_1.split("　")[1].replace("臺","台")
                     listing_date = tds[2].text.strip()
                     category = tds[4].text.strip()
                     insert_data = {'stock_code': code, 'stock_name': name, 'stock_full_name': '', 'listing_date': listing_date, 'stock_type': 2, 'category': category}
@@ -167,6 +167,7 @@ def crawler(target_hour, target_minute, db, debugging, app):
                 if data[0] and data[0] != 'order':
                     dataset_list.append(dict(zip(dataset[0], data)))
             for dataset in dataset_list:
+                dataset['未上市櫃股票公司名稱'] = dataset['未上市櫃股票公司名稱'].replace("臺","台")
                 newInput = Dataset_day(website_id=website_id, table_name='hotTop100', order=dataset['order'],
                 company_name=dataset['未上市櫃股票公司名稱'], buy_amount=dataset['★買張'], buy_high=dataset['買高'], buy_low=dataset['買低']
                 , buy_average=dataset['買均'], buy_average_yesterday=dataset['買昨均'], buy_change_percent=dataset['買漲跌幅'], sell_amount=dataset['★賣張']
@@ -190,8 +191,9 @@ def crawler(target_hour, target_minute, db, debugging, app):
                     td = tr.find_all('td')
                     row = [i.text for i in td]
                     dataset.append(row)
-            for data in dataset:
-                newInput = Dataset_day(website_id=website_id, table_name='hotTop100', company_name=data[1],
+            for idx, data in enumerate(dataset):
+                data[1] = data[1].replace("臺","台")
+                newInput = Dataset_day(website_id=website_id, table_name='hotTop100', order=idx, company_name=data[1],
                     buy_amount=data[5], buy_average=data[2], buy_average_yesterday=data[3], buy_change_percent=data[4],
                     sell_amount=data[9], sell_average=data[6], sell_average_yesterday=data[7], sell_change_percent=data[8])
                 db.session.add(newInput)
@@ -226,13 +228,12 @@ def crawler(target_hour, target_minute, db, debugging, app):
                 print(f"--------------------   共{len(urls)}批  送出請求   --------------------")
                 for index, url in enumerate(urls):
                     print(f"--------------------   第{index}批  送出請求   --------------------")
-                    print(f"{url}")
                     url  = requests.get(url)
                     text = url.text
                     json_obj = json.loads(text)
                     print(f"--------------------   第{index}批  寫入資料庫   --------------------")
                     for cmp in json_obj['msgArray']:
-                        stock_full_name = cmp['nf']
+                        stock_full_name = cmp['nf'].replace("臺","台")
                         stock_code = cmp['c']
                         sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}' WHERE stock_code = '{stock_code}'"
                         db.engine.execute(sql)
