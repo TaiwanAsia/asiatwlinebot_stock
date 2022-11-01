@@ -292,7 +292,8 @@ def search_output(user_id, reply_token, uniid, company):
             for news in NewsByYear[year]:
                 NewsBox = copy.deepcopy(NewsBoxSample)
                 NewsBox["contents"][0]["contents"][0]["text"] = news.stock_news_title
-                NewsBox["contents"][0]["contents"][1]["text"] = news.stock_news_date.split("-")[1] + "-" + news.stock_news_date.split("-")[2]
+                NewsBox["contents"][0]["contents"][0]["action"]['uri'] = news.stock_news_url
+                NewsBox["contents"][0]["contents"][1]["text"] = news.stock_news_date.split("-")[1] + "/" + news.stock_news_date.split("-")[2]
                 ContentBox.append(NewsBox) # 再放新聞
         NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
     else:
