@@ -4,9 +4,7 @@ from urllib.parse import quote
 from bs4 import BeautifulSoup
 from models.dataset_day_model import Dataset_day
 from models.stock_model import Stock
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+
 from models.stock_news_model import Stock_news
 from models.shared_db_model import db
 from api import get_uniid_by_name
@@ -15,58 +13,57 @@ from api import get_uniid_by_name
 # 鉅亨網
 #######################################  鉅亨網新聞  #######################################
 def parse_cnyesNews(company_name, stock_code):
-    print(f"\n ------------ 爬蟲開始: 鉅亨網 {company_name} {stock_code} ------------")
-
-    # selenium 瀏覽器選項配置
-    s = Service(r"C:\Program Files\Google\Chrome\Application\chromedriver.exe")
-    chrome_options = Options()
-    chrome_options.use_chromium = True
-    chrome_options.add_argument("headless")
-
-    # 初始化 webdriver
-    browser = webdriver.Chrome(options=chrome_options, service=s)
-    browser.maximize_window()
-
-
-    # 取得網頁內容
-    url = f'https://news.cnyes.com/search?q={company_name}'
-    url  = quote(url, safe=string.printable)
-
-
-    # url = "https://news.cnyes.com/search?q=%E8%81%AF%E9%9B%BB"
-    browser.get(url)
-
-    time.sleep(5) # make an authorization 
-    res = browser.page_source
-
-    soup = BeautifulSoup(res, features='html.parser')
-    prettyHtml = soup.prettify()
-
-    soup = BeautifulSoup(res, 'lxml')
-    articles = soup.find_all('article')
-    list_added = []
-    for article in articles:
-        childrens = article.findChildren(recursive=False)
-        for child in childrens:
-            datetime = ''
-            if child.get('title') is not None:
-                title = child.get('title')
-                href  = child.get('href')
-            if child.get('datetime') is not None:
-                datetime = child.get('datetime')
-            if title and href and datetime:
-                news = {"title":title, "href":href, "datetime":datetime}
-                print(news)
-                list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title=title, stock_news_url=href, stock_news_date=datetime))
-            
-        print("\n")
-
-    print(list_added)
-
-    db.session.add_all(list_added)
-    db.session.commit()
+    print(f"\n ------------ 獲取新聞 {company_name} {stock_code} ------------")
     
-    print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
+    todaydate = datetime.date(datetime.now())
+    check = Stock_news.today_update_check(stock_code)
+
+    if not check:
+        print(f"\n ------------ 爬蟲開始: 鉅亨網 {company_name} {stock_code} ------------")
+
+        from selenium import webdriver
+        from selenium.webdriver.chrome.service import Service
+        from selenium.webdriver.chrome.options import Options
+
+        s = Service(r"C:\Program Files\Google\Chrome\Application\chromedriver.exe") # selenium 瀏覽器選項配置
+        chrome_options = Options()
+        chrome_options.use_chromium = True
+        chrome_options.add_argument("headless")
+
+        browser = webdriver.Chrome(options=chrome_options, service=s) # 初始化 webdriver
+        browser.maximize_window()
+        # url = f'https://www.cnyes.com/search/news?keyword={company_name}' # 另一個頁面，也可撈
+        url = f'https://news.cnyes.com/search?q={company_name}' # 取得網頁內容
+        url = quote(url, safe=string.printable)
+        browser.get(url)
+        time.sleep(5)
+        res = browser.page_source
+        soup = BeautifulSoup(res, features='html.parser')
+        prettyHtml = soup.prettify()
+        soup = BeautifulSoup(res, 'lxml')
+        articles = soup.find_all('article')
+        list_added = []
+        for article in articles:
+            childrens = article.findChildren(recursive=False)
+            for child in childrens:
+                dt = ''
+                if child.get('title') is not None:
+                    title = child.get('title')
+                    href  = "https://news.cnyes.com"+child.get('href')
+                if child.get('datetime') is not None:
+                    dt = child.get('datetime').split('T')[0]
+                if title and href and dt:
+                    title = title.replace("<mark>","")
+                    title = title.replace("</mark>","")
+                    # news = {"title":title, "href":href, "datetime":dt}
+                    list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title=title, stock_news_url=href, stock_news_date=dt))
+        db.session.add_all(list_added)
+        db.session.commit()    
+        print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
+    
+    
+    check = Stock_news.today_update_check(stock_code)
+    return check
     #######################################  鉅亨網新聞結束  #######################################
     
 
