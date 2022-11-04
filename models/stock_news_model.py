@@ -7,7 +7,7 @@ class Stock_news(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
     stock_code   = db.Column(db.String, nullable=False)
     stock_name   = db.Column(db.String, nullable=True)
-    stock_news_title   = db.Column(db.String, nullable=True)
+    stock_news_title   = db.Column(db.Text, nullable=True)
     stock_news_content = db.Column(db.Text, nullable=True)
     stock_news_url     = db.Column(db.String, nullable=False)
     stock_news_date    = db.Column(db.Date, nullable=True)

@@ -12,8 +12,10 @@ from models.shared_db_model import db
 from models.stock_model import Stock
 from models.dataset_day_model import Dataset_day
 from models.user_favorite_stock_model import User_favorite_stock
+from models.stock_news_model import Stock_news
 from find import get_company_by_name
 from api import get_uniid_by_name, check_code_exist, get_company_by_uniid
+from news import check_news
 import re, time, _thread, copy, time
 import json, requests, sys, pymysql
 
@@ -161,8 +163,6 @@ def handle_postback(event):
         act          = str(ts.split("&")[2])
         company_name = ts.split("&")[3]
         company_type = ts.split("&")[4]
-        print("\n\n")
-        print(user + ' ' + act + ' ' + company_name + company_type)
 
     ##### 3.1 加入自選股
     if action == 'addFavorite':
@@ -186,9 +186,10 @@ def handle_postback(event):
         sql = f"UPDATE user_favorite_stock SET stock_codes = '{codes}' WHERE user_userid = '{user_id}'"
         db.engine.execute(sql)
 
-        user_favorite_stock = User_favorite_stock.find_by_userid(user_id)
+        sql = f"SELECT * FROM user_favorite_stock WHERE user_userid = '{user_id}'"
+        data = db.engine.execute(sql).fetchone()
 
-        favorite_output(user_id, reply_token, user_favorite_stock.stock_codes) # 輸出
+        favorite_output(user_id, reply_token, data['stock_codes']) # 輸出
 
 
 
@@ -304,6 +305,10 @@ def search_output(user_id, reply_token, uniid, company):
     NewsBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][2]) # 取出新聞BOX當模板
     NewsFlexMessage["body"]["contents"] = NewsFlexMessage["body"]["contents"][:1] # 移除年份、新聞BOX，現在只剩公司名稱BOX
     
+    check = Stock_news.today_update_check(stock_code)
+    if check is None or len(check) < 1:
+        line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
+
     StockNews = parse_cnyesNews(stock_name, stock_code)
     
     if StockNews is not None:
