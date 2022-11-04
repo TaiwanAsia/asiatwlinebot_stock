@@ -60,7 +60,8 @@ class Stock(db.Model):
 
 
     def find_by_code(code):
-        return Stock.query.filter_by(stock_code=code).first()
+        data = Stock.query.filter_by(stock_code=code).first()
+        return data
 
 
     # In Python, __repr__ is a special method used to represent a class’s objects as a string.

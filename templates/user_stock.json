@@ -1,0 +1,44 @@
+{
+    "type": "bubble",
+    "size": "mega",
+    "direction": "ltr",
+    "header": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+            {
+                "type": "text",
+                "text": "你的自選股",
+                "align": "start",
+                "weight": "bold",
+                "size": "xxl",
+                "style": "normal",
+                "decoration": "none",
+                "gravity": "top"
+            }
+        ]
+    },
+    "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+            {
+                "type": "button",
+                "action": {
+                "type": "postback",
+                "label": "台積電　　500 / 股",
+                "data": "stock"
+                },
+                "height": "sm"
+            }
+        ]
+    },
+    "styles": {
+        "hero": {
+        "separator": true
+        },
+        "body": {
+        "separator": true
+        }
+    }
+}
