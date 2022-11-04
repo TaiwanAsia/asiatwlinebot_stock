@@ -16,7 +16,7 @@ def parse_cnyesNews(company_name, stock_code):
     print(f"\n ------------ 獲取新聞 {company_name} {stock_code} ------------")
     
     todaydate = datetime.date(datetime.now())
-    check = Stock_news.today_update_check(stock_code)
+    check = Stock_news.today_update_check(stock_code, company_name)
 
     if not check:
         print(f"\n ------------ 爬蟲開始: 鉅亨網 {company_name} {stock_code} ------------")
@@ -43,6 +43,7 @@ def parse_cnyesNews(company_name, stock_code):
         soup = BeautifulSoup(res, 'lxml')
         articles = soup.find_all('article')
         list_added = []
+        print("\n\n News count: ", len(articles))
         for article in articles:
             childrens = article.findChildren(recursive=False)
             for child in childrens:
@@ -55,8 +56,13 @@ def parse_cnyesNews(company_name, stock_code):
                 if title and href and dt:
                     title = title.replace("<mark>","")
                     title = title.replace("</mark>","")
-                    # news = {"title":title, "href":href, "datetime":dt}
+                    if len(stock_code) < 1:
+                        stock_code = company_name
                     list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title=title, stock_news_url=href, stock_news_date=dt))
+
+        if len(articles) < 1: # 該股無新聞則插入空資料
+            list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title='', stock_news_url='', stock_news_date='1980-01-01'))
+
         db.session.add_all(list_added)
         db.session.commit()    
         print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
@@ -190,28 +196,28 @@ def crawler(target_hour, target_minute, db, debugging, app):
             print(f"\n ------------ 爬蟲結束: 必富網熱門Top100 ------------")
 
 
-            ##### 3.2 台灣投資達人熱門 Top100
-            print(f"\n ------------ 爬蟲開始: 台灣投資達人熱門Top100 ------------")
-            website_id = 2
-            body = urllib.request.urlopen('http://www.money568.com.tw/Order_Hot.asp').read()
-            soup = BeautifulSoup(body, features='html.parser')
-            target_table = soup.select_one("table.order_table_dv") # Locate data
-            target_trs = target_table.find_all('tr')
-            dataset = [] # Set data
-            for idx, tr in enumerate(target_trs):
-                if idx > 0 and idx <= 100:
-                    td = tr.find_all('td')
-                    row = [i.text for i in td]
-                    dataset.append(row)
-            for idx, data in enumerate(dataset):
-                data[1] = data[1].replace("臺","台")
-                newInput = Dataset_day(website_id=website_id, table_name='hotTop100', order=idx, company_name=data[1],
-                    buy_amount=data[5], buy_average=data[2], buy_average_yesterday=data[3], buy_change_percent=data[4],
-                    sell_amount=data[9], sell_average=data[6], sell_average_yesterday=data[7], sell_change_percent=data[8])
-                db.session.add(newInput)
-                db.session.commit()
+            # ##### 3.2 台灣投資達人熱門 Top100
+            # print(f"\n ------------ 爬蟲開始: 台灣投資達人熱門Top100 ------------")
+            # website_id = 2
+            # body = urllib.request.urlopen('http://www.money568.com.tw/Order_Hot.asp').read()
+            # soup = BeautifulSoup(body, features='html.parser')
+            # target_table = soup.select_one("table.order_table_dv") # Locate data
+            # target_trs = target_table.find_all('tr')
+            # dataset = [] # Set data
+            # for idx, tr in enumerate(target_trs):
+            #     if idx > 0 and idx <= 100:
+            #         td = tr.find_all('td')
+            #         row = [i.text for i in td]
+            #         dataset.append(row)
+            # for idx, data in enumerate(dataset):
+            #     data[1] = data[1].replace("臺","台")
+            #     newInput = Dataset_day(website_id=website_id, table_name='hotTop100', order=idx, company_name=data[1],
+            #         buy_amount=data[5], buy_average=data[2], buy_average_yesterday=data[3], buy_change_percent=data[4],
+            #         sell_amount=data[9], sell_average=data[6], sell_average_yesterday=data[7], sell_change_percent=data[8])
+            #     db.session.add(newInput)
+            #     db.session.commit()
             
-            print(f"\n ------------ 爬蟲結束: 台灣投資達人熱門Top100 ------------")
+            # print(f"\n ------------ 爬蟲結束: 台灣投資達人熱門Top100 ------------")
 
 
 

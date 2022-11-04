@@ -1,4 +1,6 @@
 import requests, json
+from models.stock_model import Stock
+from models.shared_db_model import db
 
 # 此處function皆用於搜尋"網路資源"
 
@@ -19,7 +21,7 @@ def get_company_by_uniid(uniid):
 
 # 用公司名稱 找 統一編號
 def get_uniid_by_name(stock_full_name):
-    print(f" ------------ 股票代號查詢公司  {stock_full_name} ------------")
+    print(f" ------------ 公司名稱查詢統一編號  {stock_full_name} ------------")
     if not stock_full_name:
         return False
     uniid = ''
@@ -55,3 +57,30 @@ def check_code_exist(stock_code):
     company_name = json_obj['msgArray'][0]['nf']
     stock_code = stock_code
     return [company_name, stock_code]
+
+
+# 公司名稱找公司
+def find_by_name(name):
+    url = f"https://data.gcis.nat.gov.tw/od/data/api/6BBA2268-1367-4B42-9CCA-BC17499EBE8C?$format=json&$filter=Company_Name like {name} and Company_Status eq 01&$skip=0&$top=50"
+    html  = requests.get(url)
+    html_text = html.text
+    json_obj = json.loads(html_text)
+
+    if len(json_obj) < 0:
+        return 0, None
+
+    for cmp in json_obj:
+        if cmp['Company_Name'].find("股份") > 0:
+            full_name = cmp['Company_Name']
+            name = cmp['Company_Name'][:3]
+            uniid = cmp['Business_Accounting_NO']
+            # 重要
+            # 在此預設 stock_type=1
+            newInput = Stock(stock_code='', stock_full_name=full_name, stock_name=name, stock_uniid=uniid, listing_date='1985-09-05', stock_type=1, category='') 
+            db.session.add(newInput)
+            db.session.commit()
+
+    count, company = Stock.find_by_name(name)
+    
+    return count, company
+    

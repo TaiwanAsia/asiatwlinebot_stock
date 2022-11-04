@@ -14,7 +14,7 @@ from models.dataset_day_model import Dataset_day
 from models.user_favorite_stock_model import User_favorite_stock
 from models.stock_news_model import Stock_news
 from find import get_company_by_name
-from api import get_uniid_by_name, check_code_exist, get_company_by_uniid
+from api import get_uniid_by_name, check_code_exist, get_company_by_uniid, find_by_name
 from news import check_news
 import re, time, _thread, copy, time
 import json, requests, sys, pymysql
@@ -85,7 +85,7 @@ def handle_message(event):
                 return
             company = Stock.find_by_fullname(company_name) # 搜尋Column: 公司全名
             if company is None:
-                company = Stock.find_by_name(company_name) # 搜尋Column: 公司簡稱 (like搜尋)
+                count, company = Stock.find_by_name(company_name) # 搜尋Column: 公司簡稱 (like搜尋)
             if company is None:
                 line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
                 return
@@ -113,30 +113,49 @@ def handle_message(event):
     ##### 1.2 關鍵字非INT
     else:
         ##### 1.2.1 使用者輸入公司名稱
-        company_name = message
+        keyword = message
 
-        company = Stock.find_by_fullname(company_name) # 搜尋Column: 公司全名
+        count, company = Stock.find_by_fullname(keyword) # Step 1 : 搜尋公司全名
+        print("\n", count, company)
+
         if company is None:
-            company = Stock.find_by_name(company_name) # 搜尋Column: 公司簡稱 (like搜尋)
-        if company is None:
-            company = Stock.find_by_fullname_like(company_name) # 搜尋Column: 公司全名 (like搜尋)
-        if company is None:
-            name = Dataset_day.find_by_name(company_name).company_name[:2] if Dataset_day.find_by_name(company_name) else '' # 還是找不到，則改搜尋Dataset_day，因該table未上市資料較齊全
-            company = Stock.find_by_name(name) # 搜尋Column: 公司簡稱 (like搜尋)
-        if company is None or company is False:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
-            return
-        if isinstance(company,int):
-            line_bot_api.reply_message(reply_token, TextSendMessage(text=f"共有 {company} 筆搜尋結果\n關鍵字太模糊，請輸入更精確的關鍵字！"))
+            # print("\n", 1)
+            # print("\n", count, company)
+            count, company = Stock.find_by_name(keyword) # Step 2 : 搜尋公司簡稱 (like搜尋)
+        if count == 0:
+            # print("\n", 2)
+            # print("\n", count, company)
+            count, company = Stock.find_by_fullname_like(keyword) # Step 3 : 搜尋公司全名 (like搜尋)
+
+        if count == 0:
+            # print("\n", 3)
+            # print("\n", count, company)
+            count, company = find_by_name(keyword) # Step 4 : 爬蟲後放進資料庫
+
+        if count == 0:
+            # print("\n", 4)
+            # print("\n", count, company)
+            line_bot_api.reply_message(reply_token, TextSendMessage(text="沒有資料。"))
             return
 
-        name = company.stock_full_name
-        if not name: # 因未上市無全名，故去 Dataset 找公司名稱
-            name = Dataset_day.find_by_name(company.stock_name[:2]).company_name[:4]
-        uniid = get_uniid_by_name(name)[0] 
+        if count > 1:
+            # print("\n companies:   ", company)
+            multiple_result_output(user_id, reply_token, keyword, company)
+            return
+
+        company = company[0]
+
+        uniid = company.stock_uniid
+        if uniid is None and company.stock_full_name:
+            result = get_uniid_by_name(company.stock_full_name)
+            if result:
+                uniid = result[0]
+                # print(uniid)
+                sql = f"UPDATE stock SET stock_uniid = '{uniid}' WHERE id = '{company.id}'"
+                db.engine.execute(sql)
+                company = Stock.query.filter_by(id=company.id).first()
+
         search_output(user_id, reply_token, uniid, company)
-
-        
 
 
 @handler.add(PostbackEvent)
@@ -149,13 +168,11 @@ def handle_postback(event):
     nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # ##### 2.1 回傳公司資料
-    # if action == "company_search":
-    #     company_uni_id = int(ts.split("&")[1])
-    #     company_name   = str(ts.split("&")[2])
-    #     stock_code     = str(ts.split("&")[3])
-
-    #     # 輸出公司查詢結果
-    #     search_output(reply_token, company_uni_id, company_name, stock_code, user_id)
+    if action == "company_search":
+        id = int(ts.split("&")[1])
+        stock = Stock.query.filter_by(id=id).first()
+        uniid = stock.stock_uniid
+        search_output(user_id, reply_token, uniid, stock) # 輸出查詢結果
 
     ##### 2.1 我想買、我想賣
     if action == 'iwanttrade':
@@ -250,12 +267,10 @@ def search_output(user_id, reply_token, uniid, company):
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
 
     if stock_type == 1: # 未上市
+        print("\n\n 股市資料 TradeinfoFlexMessage", stock_name)
         stock_data = Dataset_day.find_by_name(stock_name) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
 
-        # if isinstance(stock_data,int): # 搜尋結果數量多於1筆
-        #     multiple_result_output(stock_name)
-
-        if stock_data is None:
+        if stock_data is None: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
             # print("\n\n", FlexMessage['body']['contents'], "\n\n")
             BoxTop = TradeinfoFlexMessage['body']['contents'][0]
             BoxTop['contents'][0]['text'] = stock_name
@@ -268,6 +283,7 @@ def search_output(user_id, reply_token, uniid, company):
             }
             BoxTop['contents'].append(d)
             TradeinfoFlexMessage['body']['contents'].pop(1)
+            TradeinfoFlexMessage['body']['contents'].pop(-1)
         
         else:
             BoxTop = TradeinfoFlexMessage['body']['contents'][0]
@@ -282,9 +298,10 @@ def search_output(user_id, reply_token, uniid, company):
             WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{stock_name[:4]}&{stock_type}"
             WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
             WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{stock_name[:4]}&{stock_type}"
+            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{stock_code}"
 
     # TODO: 爬上市股價
-    elif stock_type == 2: # 上市 
+    elif stock_type == 2: # 上市
         BoxTop = TradeinfoFlexMessage['body']['contents'][0]
         BoxTop['contents'][0]['text'] = stock_full_name
         WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
@@ -293,8 +310,7 @@ def search_output(user_id, reply_token, uniid, company):
         WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{stock_name[:4]}&{stock_type}"
         WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
         WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{stock_name[:4]}&{stock_type}"
-
-    TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{stock_code}"
+        TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{stock_code}"
         
     CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
 
@@ -310,8 +326,8 @@ def search_output(user_id, reply_token, uniid, company):
         line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
 
     StockNews = parse_cnyesNews(stock_name, stock_code)
-    
-    if StockNews is not None:
+
+    if StockNews is not None and len(StockNews[0].stock_news_title)>0:
         NewsFlexMessage["body"]["contents"][0]["text"] = stock_name # 修改公司名稱
         NewsByYear = {}
         ContentBox = [] # 年份&新聞BOX
@@ -333,8 +349,8 @@ def search_output(user_id, reply_token, uniid, company):
         NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
     else:
         NewsFlexMessage["body"]["contents"][0]["text"] = stock_name
-        NewsFlexMessage["body"]["contents"][1]["contents"][1]["contents"]["text"] = "無"
-        NewsFlexMessage["body"]["contents"][1]["contents"].pop()
+        # NewsFlexMessage["body"]["contents"][1]["contents"][1]["contents"]["text"] = "無"
+        # NewsFlexMessage["body"]["contents"][1]["contents"].pop()
     
     CarouselMessage["contents"].append(NewsFlexMessage) # 放入Carousel
 
@@ -365,86 +381,51 @@ def favorite_output(userid, reply_token, codes):
 
 
 #### TODO 
-def multiple_result_output(user_id, reply_token, name):
-    # 資料庫裡沒資料，則爬蟲
-    url = requests.get("https://company.g0v.ronny.tw/api/search?q={0}".format(company_name))
-    text = url.text
-    json_obj = json.loads(text)
-    json_obj_len = json_obj['found']
+def multiple_result_output(user_id, reply_token, keyword, companies):
 
-    if json_obj_len < 1:
-        line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料耶..."))
-        return
-    
-    elif json_obj_len == 1:
-        candidate = json_obj['data'][0]
-        company_uni_id = candidate['統一編號']
+    # 載入Flex template
+    FlexMessage = json.load(open('templates/template.json','r',encoding='utf-8'))
+    FlexMessage['contents'][0]['header']['contents'][0]['text'] = keyword
+    candidates_list = []
 
-        if '名稱' in candidate and candidate['名稱'] == company_name:
-            company_name = candidate['名稱']
-        if '公司名稱' in candidate and candidate['公司名稱'] == company_name:
-            company_name = candidate['公司名稱']
-
-        if company_name:
-            if stock_code is False:
-                # 公司名稱 找出 股票代號
-                result = get_stockCode_by_companyName(company_name)
-                if result:
-                    company_name, stock_code = result
-            search_output(reply_token, company_uni_id, company_name, stock_code, user_id)
+    for company in companies:
+        if company.stock_uniid is None:
+            result = get_uniid_by_name(company.stock_full_name)
+            if result:
+                uniid = result[0]
+                sql = f"UPDATE stock SET stock_uniid = '{uniid}' WHERE id = '{company.id}'"
+                db.engine.execute(sql)
+                company = Stock.query.filter_by(id=company.id).first()
+        if len(company.stock_full_name) > 0:
+            name = company.stock_full_name
         else:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料耶..."))
-        
-    else:
-        candidates = []
-        for candidate in json_obj['data']:
-            if '名稱' in candidate:
-                candidates.append([candidate['名稱'], candidate['統一編號']])
-            if '公司名稱' in candidate:
-                candidates.append([candidate['公司名稱'], candidate['統一編號']])
-            if '商業名稱' in candidate:
-                candidates.append([candidate['商業名稱'], candidate['統一編號']])
-
-        # 載入Flex template
-        FlexMessage = json.load(open('templates/template.json','r',encoding='utf-8'))
-        FlexMessage['contents'][0]['header']['contents'][0]['text'] = company_name
-        candidates_list = []
-        
-        for candidate in candidates:
-            company_uni_id = candidate[1]
-            company_name   = candidate[0]
-            if company_name:
-                # 公司名稱 找出 股票代號
-                result = get_stockCode_by_companyName(company_name)
-                if result:
-                    company_name, stock_code = result
-            cand =  {
-                "type": "button",
-                "action": {
-                    "type": "postback",
-                    "label": f"{company_name}",
-                    "data": f"company_search&{company_uni_id}&{company_name}&{stock_code}"
-                }
+            name = company.stock_name
+        cand =  {
+            "type": "button",
+            "action": {
+                "type": "postback",
+                "label": f"{name}",
+                "data": f"company_search&{company.id}"
             }
-            candidates_list.append(cand)
+        }
+        candidates_list.append(cand)
 
-        if json_obj_len > 10:
-            cand =  {
-                "type": "text",
-                "text": f"共有{json_obj_len}筆，建議搜尋精準關鍵字",
-                "color": "#aaaaaa",
-                "size": "md",
-                "weight": "bold",
-                "style": "italic",
-                "decoration": "underline",
-                "align": "center"
-            }
-            candidates_list.append(cand)
+    if len(companies) > 10:
+        cand =  {
+            "type": "text",
+            "text": f"共有{len(companies)}筆，建議搜尋精準關鍵字",
+            "color": "#aaaaaa",
+            "size": "md",
+            "weight": "bold",
+            "style": "italic",
+            "decoration": "underline",
+            "align": "center"
+        }
+        candidates_list.append(cand)
 
-        FlexMessage['contents'][0]['body']['contents'] = candidates_list
-        
+    FlexMessage['contents'][0]['body']['contents'] = candidates_list
 
-        line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
+    line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
 
 
 
