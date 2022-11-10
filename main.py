@@ -159,7 +159,7 @@ def handle_postback(event):
     nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     ##### 2.1 回傳公司資料
-    if action == "company_search":
+    if action == "stock":
         id = int(ts.split("&")[1])
         stock = Stock.query.filter_by(id=id).first()
         uniid = stock.stock_uniid
@@ -263,7 +263,6 @@ def search_output(user_id, reply_token, uniid, company):
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
 
     if stock_type == 1: # 未上市
-        print("\n\n 股市資料 TradeinfoFlexMessage", stock_name)
         stock_data = Dataset_day.find_by_name(stock_name) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
 
         if stock_data is None: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
@@ -403,7 +402,7 @@ def multiple_result_output(user_id, reply_token, keyword, companies):
             "action": {
                 "type": "postback",
                 "label": f"{name}",
-                "data": f"company_search&{company.id}"
+                "data": f"stock&{company.id}"
             }
         }
         candidates_list.append(cand)
@@ -440,8 +439,8 @@ if __name__ == "__main__":
     # Debug模式將無條件執行爬蟲
     debug = False
     if len(sys.argv) > 1:
-        if sys.argv[1] == '1' or sys.argv[1] == 'True':
-            debug = True
+        if sys.argv[1] is not False:
+            debug = sys.argv[1]
 
     # 爬蟲執行時間
     target_time = [11, 37]

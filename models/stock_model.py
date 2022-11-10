@@ -41,8 +41,6 @@ class Stock(db.Model):
     def find_by_fullname(name):
         print(f" ------------ 依公司全名查詢公司  :  {name} ------------")
         data = Stock.query.filter_by(stock_full_name=name).first()
-        if data is None:
-            return 0, None
         return data
 
 
