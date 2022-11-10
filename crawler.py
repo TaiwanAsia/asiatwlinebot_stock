@@ -12,64 +12,59 @@ from api import get_uniid_by_name
 
 # 鉅亨網
 #######################################  鉅亨網新聞  #######################################
-def parse_cnyesNews(company_name, stock_code):
-    print(f"\n ------------ 獲取新聞 {company_name} {stock_code} ------------")
+def parse_cnyesNews(stock_code, company_name):
+
+    print(f"\n ------------ 爬蟲開始: 鉅亨網 {stock_code} {company_name} ------------")
+
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+
+    s = Service(r"C:\Program Files\Google\Chrome\Application\chromedriver.exe") # selenium 瀏覽器選項配置
+    chrome_options = Options()
+    chrome_options.use_chromium = True
+    chrome_options.add_argument("headless")
+
+    browser = webdriver.Chrome(options=chrome_options, service=s) # 初始化 webdriver
+    browser.maximize_window()
+    # url = f'https://www.cnyes.com/search/news?keyword={company_name}' # 另一個頁面，也可撈
+    url = f'https://news.cnyes.com/search?q={company_name}' # 取得網頁內容
+    url = quote(url, safe=string.printable)
+    browser.get(url)
+    time.sleep(2)
+    res = browser.page_source
+    soup = BeautifulSoup(res, features='html.parser')
+    prettyHtml = soup.prettify()
+    soup = BeautifulSoup(res, 'lxml')
+    articles = soup.find_all('article')
+    list_added = []
     
-    todaydate = datetime.date(datetime.now())
-    check = Stock_news.today_update_check(stock_code, company_name)
+    for article in articles:
+        childrens = article.findChildren(recursive=False)
+        for child in childrens:
+            dt = ''
+            if child.get('title') is not None:
+                title = child.get('title')
+                href  = "https://news.cnyes.com"+child.get('href')
+            if child.get('datetime') is not None:
+                dt = child.get('datetime').split('T')[0]
+            if title and href and dt:
+                title = title.replace("<mark>","")
+                title = title.replace("</mark>","")
+                if len(stock_code) < 1:
+                    stock_code = company_name
+                list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title=title, stock_news_url=href, stock_news_date=dt))
 
-    if not check:
-        print(f"\n ------------ 爬蟲開始: 鉅亨網 {company_name} {stock_code} ------------")
+    if len(articles) < 1: # 該股無新聞則插入空資料
+        list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title='', stock_news_url='', stock_news_date='1980-01-01'))
 
-        from selenium import webdriver
-        from selenium.webdriver.chrome.service import Service
-        from selenium.webdriver.chrome.options import Options
-
-        s = Service(r"C:\Program Files\Google\Chrome\Application\chromedriver.exe") # selenium 瀏覽器選項配置
-        chrome_options = Options()
-        chrome_options.use_chromium = True
-        chrome_options.add_argument("headless")
-
-        browser = webdriver.Chrome(options=chrome_options, service=s) # 初始化 webdriver
-        browser.maximize_window()
-        # url = f'https://www.cnyes.com/search/news?keyword={company_name}' # 另一個頁面，也可撈
-        url = f'https://news.cnyes.com/search?q={company_name}' # 取得網頁內容
-        url = quote(url, safe=string.printable)
-        browser.get(url)
-        time.sleep(5)
-        res = browser.page_source
-        soup = BeautifulSoup(res, features='html.parser')
-        prettyHtml = soup.prettify()
-        soup = BeautifulSoup(res, 'lxml')
-        articles = soup.find_all('article')
-        list_added = []
-        print("\n\n News count: ", len(articles))
-        for article in articles:
-            childrens = article.findChildren(recursive=False)
-            for child in childrens:
-                dt = ''
-                if child.get('title') is not None:
-                    title = child.get('title')
-                    href  = "https://news.cnyes.com"+child.get('href')
-                if child.get('datetime') is not None:
-                    dt = child.get('datetime').split('T')[0]
-                if title and href and dt:
-                    title = title.replace("<mark>","")
-                    title = title.replace("</mark>","")
-                    if len(stock_code) < 1:
-                        stock_code = company_name
-                    list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title=title, stock_news_url=href, stock_news_date=dt))
-
-        if len(articles) < 1: # 該股無新聞則插入空資料
-            list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title='', stock_news_url='', stock_news_date='1980-01-01'))
-
-        db.session.add_all(list_added)
-        db.session.commit()    
-        print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
+    db.session.add_all(list_added)
+    db.session.commit()    
+    print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
     
     
-    check = Stock_news.today_update_check(stock_code)
-    return check
+    # check = Stock_news.today_update_check(stock_code, company_name)
+    # return check
     #######################################  鉅亨網新聞結束  #######################################
     
 
@@ -269,12 +264,13 @@ def crawler(target_hour, target_minute, db, debugging, app):
                     result = get_uniid_by_name(name)
                     if result:
                         uniid, stock_full_name = result
-                        target = Stock.find_by_name(name[:2], 1)
-                        if isinstance(target, int):
-                            target = Stock.find_by_name(name[:3], 1)
-                        if target is not None and not isinstance(target, int):
-                            sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}', stock_uniid = '{uniid}' WHERE id = '{target.id}'"
+                        count, target = Stock.find_by_name(name[:2], 1)
+                        if count > 1:
+                            count, target = Stock.find_by_name(name[:3], 1)
+                        if count == 1:
+                            sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}', stock_uniid = '{uniid}' WHERE id = '{target[0].id}'"
                             db.engine.execute(sql)
+                            print(f"更新成功！   {target[0].stock_full_name} => {stock_full_name}")
                         else:
                             pass
                             # print("Stock中沒有符合的資料。")

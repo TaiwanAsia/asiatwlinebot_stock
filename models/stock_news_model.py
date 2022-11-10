@@ -26,12 +26,12 @@ class Stock_news(db.Model):
 
     def today_update_check(code, name=''):
         today = datetime.today().date()
-        code_filter = Stock_news.stock_code == code
         updatedtime_filter = Stock_news.updated_at > datetime(today.year, today.month, today.day)
-        if len(code) < 1:
+        if len(code) < 1: # 部分未上市股票無股票代號
             name_filter = Stock_news.stock_name.like('%{}%'.format(name))
-            query = Stock_news.query.filter(code_filter, name_filter, updatedtime_filter)
+            query = Stock_news.query.filter(name_filter, updatedtime_filter)
         else:
+            code_filter = Stock_news.stock_code == code 
             query = Stock_news.query.filter(code_filter, updatedtime_filter)
         return query.limit(15).all()
 

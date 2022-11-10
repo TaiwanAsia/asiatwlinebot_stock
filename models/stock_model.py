@@ -30,7 +30,7 @@ class Stock(db.Model):
             return False
         name_filter = Stock.stock_name.like('%{}%'.format(name))
         if type:
-            type_filter = Stock.stock_type==type
+            type_filter = Stock.stock_type==type # 1: 未上市   2: 上市
             query = Stock.query.filter(name_filter, type_filter)
         else:
             query = Stock.query.filter(name_filter)
@@ -39,18 +39,18 @@ class Stock(db.Model):
 
 
     def find_by_fullname(name):
-        print(f" ------------ 依公司全名查詢公司 Company_name: {name} ------------")
+        print(f" ------------ 依公司全名查詢公司  :  {name} ------------")
         data = Stock.query.filter_by(stock_full_name=name).first()
         if data is None:
             return 0, None
-        return 1, data
+        return data
 
 
     def find_by_fullname_like(name, type=False):
         if not name:
             return False
         l = len(name)
-        print(f" ------------ 依公司全名查詢公司(like) Company_name: {name} length: {l} ------------")
+        print(f" ------------ 依公司全名查詢公司(like)  :  {name}   length: {l} ------------")
         name_filter = Stock.stock_full_name.like('%{}%'.format(name[:l]))
         if type:
             type_filter = Stock.stock_type==type
@@ -63,6 +63,12 @@ class Stock(db.Model):
 
     def find_by_code(code):
         data = Stock.query.filter_by(stock_code=code).first()
+        return data
+
+    
+    def find_by_ids(ids):
+        ids = ids.split(",")
+        data = Stock.query.filter(Stock.id.in_(ids)).all()
         return data
 
 

@@ -59,9 +59,10 @@ def check_code_exist(stock_code):
     return [company_name, stock_code]
 
 
-# 公司名稱找公司
-def find_by_name(name):
-    url = f"https://data.gcis.nat.gov.tw/od/data/api/6BBA2268-1367-4B42-9CCA-BC17499EBE8C?$format=json&$filter=Company_Name like {name} and Company_Status eq 01&$skip=0&$top=50"
+# 關鍵字找公司名稱
+def parse_by_keyword(keyword):
+    print(f"\n ------------ 資料庫無資料，爬蟲關鍵字找公司名稱 : {keyword} ------------")
+    url = f"https://data.gcis.nat.gov.tw/od/data/api/6BBA2268-1367-4B42-9CCA-BC17499EBE8C?$format=json&$filter=Company_Name like {keyword} and Company_Status eq 01&$skip=0&$top=50"
     html  = requests.get(url)
     html_text = html.text
     json_obj = json.loads(html_text)
@@ -80,7 +81,7 @@ def find_by_name(name):
             db.session.add(newInput)
             db.session.commit()
 
-    count, company = Stock.find_by_name(name)
+    count, company = Stock.find_by_name(keyword)
     
     return count, company
     

@@ -14,7 +14,7 @@ from models.dataset_day_model import Dataset_day
 from models.user_favorite_stock_model import User_favorite_stock
 from models.stock_news_model import Stock_news
 from find import get_company_by_name
-from api import get_uniid_by_name, check_code_exist, get_company_by_uniid, find_by_name
+from api import get_uniid_by_name, check_code_exist, get_company_by_uniid, parse_by_keyword
 from news import check_news
 import re, time, _thread, copy, time
 import json, requests, sys, pymysql
@@ -38,7 +38,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
 
 db.init_app(app)
 
@@ -114,43 +114,33 @@ def handle_message(event):
     else:
         ##### 1.2.1 使用者輸入公司名稱
         keyword = message
-
-        count, company = Stock.find_by_fullname(keyword) # Step 1 : 搜尋公司全名
-        print("\n", count, company)
+        count   = 0
+        company = Stock.find_by_fullname(keyword) # Step 1 : 搜尋公司全名
 
         if company is None:
-            # print("\n", 1)
-            # print("\n", count, company)
             count, company = Stock.find_by_name(keyword) # Step 2 : 搜尋公司簡稱 (like搜尋)
+
         if count == 0:
-            # print("\n", 2)
-            # print("\n", count, company)
             count, company = Stock.find_by_fullname_like(keyword) # Step 3 : 搜尋公司全名 (like搜尋)
+            
+        if count == 0:
+            count, company = parse_by_keyword(keyword) # Step 1-3 都沒有 : 爬蟲後放進資料庫
 
         if count == 0:
-            # print("\n", 3)
-            # print("\n", count, company)
-            count, company = find_by_name(keyword) # Step 4 : 爬蟲後放進資料庫
-
-        if count == 0:
-            # print("\n", 4)
-            # print("\n", count, company)
             line_bot_api.reply_message(reply_token, TextSendMessage(text="沒有資料。"))
             return
 
         if count > 1:
-            # print("\n companies:   ", company)
             multiple_result_output(user_id, reply_token, keyword, company)
             return
 
         company = company[0]
-
         uniid = company.stock_uniid
-        if uniid is None and company.stock_full_name:
+
+        if (uniid is None or uniid is False or len(uniid) == 0) and company.stock_full_name:
             result = get_uniid_by_name(company.stock_full_name)
             if result:
                 uniid = result[0]
-                # print(uniid)
                 sql = f"UPDATE stock SET stock_uniid = '{uniid}' WHERE id = '{company.id}'"
                 db.engine.execute(sql)
                 company = Stock.query.filter_by(id=company.id).first()
@@ -161,13 +151,14 @@ def handle_message(event):
 @handler.add(PostbackEvent)
 def handle_postback(event):
     ts = str(event.postback.data)
-    action = ts.split("&")[0]
+    param = ts.split("&")
+    action = param[0]
     user_id = event.source.user_id
     reply_token = event.reply_token
     nowdate = datetime.now().strftime("%Y-%m-%d")
     nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # ##### 2.1 回傳公司資料
+    ##### 2.1 回傳公司資料
     if action == "company_search":
         id = int(ts.split("&")[1])
         stock = Stock.query.filter_by(id=id).first()
@@ -183,30 +174,34 @@ def handle_postback(event):
 
     ##### 3.1 加入自選股
     if action == 'addFavorite':
-        code = ts.split("&")[1]
-        user_favorite_stock = User_favorite_stock.find_by_userid(user_id)
-        codes = user_favorite_stock.stock_codes
+        id = param[1]
+        
+        favorite_stocks = User_favorite_stock.find_by_userid(user_id)
 
-        if user_favorite_stock is None:
-            newInput = User_favorite_stock(user_userid=user_id, stock_codes='')
-            db.session.add(newInput)
-            db.session.commit()
-            time.sleep(1)
-            user_favorite_stock = User_favorite_stock.find_by_userid(user_id)
+        if favorite_stocks is False or favorite_stocks is None: # 首次新增自選股
+            favorite_stocks = User_favorite_stock(user_userid=user_id, stock_ids='')
+            db.session.add(favorite_stocks)
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(e)
 
-        if codes.find(code) < 0: # 未加入過此股
-            if len(codes) > 0:
-                codes += f',{code}'
-            else: # 首次加入自選股
-                codes += f'{code}'
+        if favorite_stocks.stock_ids.find(id) < 0: # 未加入過此股
+            if len(favorite_stocks.stock_ids) > 0:
+                favorite_stocks.stock_ids += f',{id}'
+            else: # 首次新增自選股
+                favorite_stocks.stock_ids += f'{id}'
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(e)
 
-        sql = f"UPDATE user_favorite_stock SET stock_codes = '{codes}' WHERE user_userid = '{user_id}'"
-        db.engine.execute(sql)
+        favorite_stocks = db.session.merge(favorite_stocks)
+        # session 已经被提交(commit)，导致操作的 model 对象已经不在当前 session 中了。 解决的办法就是：把对象重新加入到当前 session 中
 
-        sql = f"SELECT * FROM user_favorite_stock WHERE user_userid = '{user_id}'"
-        data = db.engine.execute(sql).fetchone()
-
-        favorite_output(user_id, reply_token, data['stock_codes']) # 輸出
+        favorite_output(user_id, reply_token, favorite_stocks) # 輸出
 
 
 
@@ -225,6 +220,7 @@ def search_output(user_id, reply_token, uniid, company):
         line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
         return
 
+    id = company.id
     stock_name = company.stock_name
     stock_code = company.stock_code
     stock_full_name = company.stock_full_name
@@ -298,7 +294,7 @@ def search_output(user_id, reply_token, uniid, company):
             WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{stock_name[:4]}&{stock_type}"
             WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
             WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{stock_name[:4]}&{stock_type}"
-            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{stock_code}"
+            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{id}" # 加入自選股
 
     # TODO: 爬上市股價
     elif stock_type == 2: # 上市
@@ -310,7 +306,7 @@ def search_output(user_id, reply_token, uniid, company):
         WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{stock_name[:4]}&{stock_type}"
         WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
         WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{stock_name[:4]}&{stock_type}"
-        TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{stock_code}"
+        TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{id}" # 加入自選股
         
     CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
 
@@ -321,13 +317,14 @@ def search_output(user_id, reply_token, uniid, company):
     NewsBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][2]) # 取出新聞BOX當模板
     NewsFlexMessage["body"]["contents"] = NewsFlexMessage["body"]["contents"][:1] # 移除年份、新聞BOX，現在只剩公司名稱BOX
     
-    check = Stock_news.today_update_check(stock_code)
+    check = Stock_news.today_update_check(stock_code, stock_name)
     if check is None or len(check) < 1:
         line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
+        parse_cnyesNews(stock_code, stock_name) # 爬蟲
 
-    StockNews = parse_cnyesNews(stock_name, stock_code)
+    StockNews = Stock_news.today_update_check(stock_code, stock_name)
 
-    if StockNews is not None and len(StockNews[0].stock_news_title)>0:
+    if StockNews is not None and len(StockNews[0].stock_news_title) > 0:
         NewsFlexMessage["body"]["contents"][0]["text"] = stock_name # 修改公司名稱
         NewsByYear = {}
         ContentBox = [] # 年份&新聞BOX
@@ -359,18 +356,19 @@ def search_output(user_id, reply_token, uniid, company):
 
 
 # 輸出使用者自選股
-def favorite_output(userid, reply_token, codes):
-    codes = codes.split(',')
+def favorite_output(userid, reply_token, data):
     FavoriteFlexMessage = json.load(open("templates/user_stock.json","r",encoding="utf-8"))
     FavoriteFlexMessage["body"]["contents"].clear()
-    for code in codes: # TODO 應該用 IN(code1, code2) 效率會比一直query好
-        stock = Stock.find_by_code(code)
+
+    stocks = Stock.find_by_ids(data.stock_ids)
+
+    for stock in stocks: # TODO 應該用 IN(code1, code2) 效率會比一直query好
         box = {
-                "type": "button",
+                "type"  : "button",
                 "action": {
-                "type": "postback",
-                "label": f"{stock.stock_name}　　500 / 股",
-                "data": "stock"
+                    "type"  : "postback",
+                    "label" : f"{stock.stock_name}　　500 / 股",
+                    "data"  : f"stock&{stock.id}"
                 },
                 "height": "sm"
         }
