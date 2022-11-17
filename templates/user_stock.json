@@ -1,0 +1,32 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "我的自選股",
+            "size": "xxl",
+            "weight": "bold",
+            "align": "center"
+          },
+          {
+            "type": "separator",
+            "margin": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "paddingBottom": "xl"
+          }
+        ]
+      }
+    ]
+  }
+}

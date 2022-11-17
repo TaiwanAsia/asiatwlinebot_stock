@@ -87,14 +87,10 @@
             }
           },
           {
-            "type": "button",
-            "style": "link",
-            "height": "sm",
-            "action": {
-              "type": "uri",
-              "label": "最近登錄興櫃公司",
-              "uri": "https://www.tpex.org.tw/web/regular_emerging/apply_schedule/applicant_emerging/applicant_emerging_companies.php?l=zh-tw&stk_code="
-            }
+            "type": "image",
+            "url": "https://i.imgur.com/vKyWusd.png",
+            "aspectRatio": "2:1",
+            "size": "4xl"
           }
         ],
         "flex": 0,

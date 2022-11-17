@@ -7,7 +7,7 @@ class Stock_news(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
     stock_code   = db.Column(db.String, nullable=False)
     stock_name   = db.Column(db.String, nullable=True)
-    stock_news_title   = db.Column(db.String, nullable=True)
+    stock_news_title   = db.Column(db.Text, nullable=True)
     stock_news_content = db.Column(db.Text, nullable=True)
     stock_news_url     = db.Column(db.String, nullable=False)
     stock_news_date    = db.Column(db.Date, nullable=True)
@@ -24,11 +24,15 @@ class Stock_news(db.Model):
     def find_by_code(code):
         return Stock_news.query.filter_by(stock_code=code).first()
 
-    def today_update_check(code):
+    def today_update_check(code, name=''):
         today = datetime.today().date()
-        code_filter = Stock_news.stock_code == code
         updatedtime_filter = Stock_news.updated_at > datetime(today.year, today.month, today.day)
-        query = Stock_news.query.filter(code_filter, updatedtime_filter)
+        if len(code) < 1: # 部分未上市股票無股票代號
+            name_filter = Stock_news.stock_name.like('%{}%'.format(name))
+            query = Stock_news.query.filter(name_filter, updatedtime_filter)
+        else:
+            code_filter = Stock_news.stock_code == code 
+            query = Stock_news.query.filter(code_filter, updatedtime_filter)
         return query.limit(15).all()
 
     # In Python, __repr__ is a special method used to represent a class’s objects as a string.
