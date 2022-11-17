@@ -323,13 +323,26 @@
         "type": "button",
         "action": {
           "type": "postback",
-          "label": "➕ 加入自選股",
+          "label": "+ 加入自選股",
           "data": "addFavorite"
         },
         "style": "primary",
         "height": "sm",
         "offsetTop": "xl",
         "offsetBottom": "xl",
+        "color": "#6b8dfa"
+      },
+      {
+        "type": "button",
+        "action": {
+          "type": "postback",
+          "label": "檢視我的自選股",
+          "data": "viewFavorite"
+        },
+        "style": "primary",
+        "height": "sm",
+        "offsetTop": "xxl",
+        "offsetBottom": "xxl",
         "color": "#6b8dfa"
       }
     ]

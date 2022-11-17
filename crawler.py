@@ -215,10 +215,14 @@ def parse_company_fullname(db, app):
             json_obj = json.loads(text)
             print(f"--------------------   第{index}批  寫入資料庫   --------------------")
             for cmp in json_obj['msgArray']:
-                stock_full_name = cmp['nf'].replace("臺","台")
+                if 'nf' in cmp:
+                    stock_full_name = cmp['nf'].replace("臺","台")
                 stock_code = cmp['c']
                 sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}' WHERE stock_code = '{stock_code}'"
-                db.engine.execute(sql)
+                try:
+                    db.engine.execute(sql)
+                except Exception as e:
+                    print(e)
             time.sleep(10) # 以防被鎖IP
         print(f" ------------ 爬蟲結束: 更新上市公司全名 ------------")
 
@@ -293,6 +297,7 @@ def parse_cnyesNews(stock_code, company_name):
                 list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title=title, stock_news_url=href, stock_news_date=dt))
 
     if len(articles) < 1: # 該股無新聞則插入空資料
+        print("\n插入空資料")
         list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title='', stock_news_url='', stock_news_date='1980-01-01'))
 
     db.session.add_all(list_added)

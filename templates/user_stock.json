@@ -1,44 +1,32 @@
 {
-    "type": "bubble",
-    "size": "mega",
-    "direction": "ltr",
-    "header": {
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
         "type": "box",
         "layout": "vertical",
         "contents": [
-            {
-                "type": "text",
-                "text": "你的自選股",
-                "align": "start",
-                "weight": "bold",
-                "size": "xxl",
-                "style": "normal",
-                "decoration": "none",
-                "gravity": "top"
-            }
+          {
+            "type": "text",
+            "text": "我的自選股",
+            "size": "xxl",
+            "weight": "bold",
+            "align": "center"
+          },
+          {
+            "type": "separator",
+            "margin": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "paddingBottom": "xl"
+          }
         ]
-    },
-    "body": {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-            {
-                "type": "button",
-                "action": {
-                "type": "postback",
-                "label": "台積電　　500 / 股",
-                "data": "stock"
-                },
-                "height": "sm"
-            }
-        ]
-    },
-    "styles": {
-        "hero": {
-        "separator": true
-        },
-        "body": {
-        "separator": true
-        }
-    }
+      }
+    ]
+  }
 }

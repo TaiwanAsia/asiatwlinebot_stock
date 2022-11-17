@@ -81,13 +81,13 @@ def handle_message(event):
             uniid = message
             company_name = get_company_by_uniid(uniid)
             if company_name is False:
-                line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
+                line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
                 return
             company = Stock.find_by_fullname(company_name) # 搜尋Column: 公司全名
             if company is None:
                 count, company = Stock.find_by_name(company_name) # 搜尋Column: 公司簡稱 (like搜尋)
             if company is None:
-                line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
+                line_bot_api.reply_message(reply_token, TextSendMessage(text="是查無此公司，請再確認一次。"))
                 return
             search_output(user_id, reply_token, uniid, company)
 
@@ -96,7 +96,7 @@ def handle_message(event):
             code = message
             company = Stock.find_by_code(code)
             if company is None:
-                line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
+                line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
                 return
             if company.stock_full_name:
                 name = company.stock_full_name
@@ -107,7 +107,7 @@ def handle_message(event):
         
         ##### 1.1.3 找不到資料
         else:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
+            line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
 
 
     ##### 1.2 關鍵字非INT
@@ -127,7 +127,7 @@ def handle_message(event):
             count, company = parse_by_keyword(keyword) # Step 1-3 都沒有 : 爬蟲後放進資料庫
 
         if count == 0:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="沒有資料。"))
+            line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
             return
 
         if count > 1:
@@ -203,6 +203,28 @@ def handle_postback(event):
 
         favorite_output(user_id, reply_token, favorite_stocks) # 輸出
 
+    ##### 3.2 移出自選股
+    if action == 'delFavorite':
+        id = param[1]
+        favorite_stocks = User_favorite_stock.find_by_userid(user_id)
+        favorite_stocks_list = favorite_stocks.stock_ids.split(",")
+        favorite_stocks_list.remove(str(id))
+        favorite_stocks.stock_ids = ",".join(favorite_stocks_list)
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(e)
+        
+        favorite_stocks = db.session.merge(favorite_stocks)
+        # session 已经被提交(commit)，导致操作的 model 对象已经不在当前 session 中了。 解决的办法就是：把对象重新加入到当前 session 中
+
+        favorite_output(user_id, reply_token, favorite_stocks) # 輸出
+
+    ##### 3.3 檢視自選股
+    if action == 'viewFavorite':
+        favorite_stocks = User_favorite_stock.find_by_userid(user_id)
+        favorite_output(user_id, reply_token, favorite_stocks) # 輸出
 
 
 
@@ -214,7 +236,7 @@ def handle_postback(event):
 # 2.股市資料
 # 3.新聞
 def search_output(user_id, reply_token, uniid, company):
-    print(f"\n ------------ 輸出公司查詢結果  {company.stock_name}------------")
+    print(f"\n ------------ 輸出公司查詢結果 : {company.stock_name}------------")
 
     if company is None:
         line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
@@ -258,29 +280,36 @@ def search_output(user_id, reply_token, uniid, company):
     CarouselMessage['contents'].append(FlexMessage) # 放入Carousel
 
 
+    added_already = False
+    favorite_stocks = User_favorite_stock.find_by_userid(user_id)
+    if favorite_stocks is not None and favorite_stocks is not False:
+        if favorite_stocks.stock_ids.find(str(id)) >= 0:
+            added_already = True
+
     #
     # 2 股市資料
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
 
-    if stock_type == 1: # 未上市
-        stock_data = Dataset_day.find_by_name(stock_name) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
+    stock_data = Dataset_day.find_by_name(stock_name) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
 
-        if stock_data is None: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
-            # print("\n\n", FlexMessage['body']['contents'], "\n\n")
-            BoxTop = TradeinfoFlexMessage['body']['contents'][0]
-            BoxTop['contents'][0]['text'] = stock_name
-            d = {
-              "type": "text",
-              "text": "無股票資料",
-              "size": "xl",
-              "weight": "bold",
-              "align": "center"
-            }
-            BoxTop['contents'].append(d)
-            TradeinfoFlexMessage['body']['contents'].pop(1)
-            TradeinfoFlexMessage['body']['contents'].pop(-1)
-        
-        else:
+    if stock_data is None: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
+        # print("\n\n", FlexMessage['body']['contents'], "\n\n")
+        BoxTop = TradeinfoFlexMessage['body']['contents'][0]
+        BoxTop['contents'][0]['text'] = stock_name
+        notFound = {
+            "type": "text",
+            "text": "無股票資料",
+            "size": "xl",
+            "weight": "bold",
+            "align": "center"
+        }
+        BoxTop['contents'].append(notFound)
+        TradeinfoFlexMessage['body']['contents'].pop(4)
+        TradeinfoFlexMessage['body']['contents'].pop(3)
+        TradeinfoFlexMessage['body']['contents'].pop(1)
+    
+    else:
+        if stock_type == 1: # 未上市
             BoxTop = TradeinfoFlexMessage['body']['contents'][0]
             BoxTop['contents'][0]['text'] = stock_name
             Target_buy  = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
@@ -293,19 +322,29 @@ def search_output(user_id, reply_token, uniid, company):
             WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{stock_name[:4]}&{stock_type}"
             WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
             WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{stock_name[:4]}&{stock_type}"
-            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{id}" # 加入自選股
+            
 
-    # TODO: 爬上市股價
-    elif stock_type == 2: # 上市
-        BoxTop = TradeinfoFlexMessage['body']['contents'][0]
-        BoxTop['contents'][0]['text'] = stock_full_name
-        WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
-        WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
-        WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
-        WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{stock_name[:4]}&{stock_type}"
-        WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
-        WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{stock_name[:4]}&{stock_type}"
-        TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{id}" # 加入自選股
+        # TODO: 爬上市股價
+        elif stock_type == 2: # 上市
+            BoxTop = TradeinfoFlexMessage['body']['contents'][0]
+            BoxTop['contents'][0]['text'] = stock_full_name
+            WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+            WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+            WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+            WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{stock_name[:4]}&{stock_type}"
+            WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+            WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{stock_name[:4]}&{stock_type}"
+        
+        TradeinfoFlexMessage["body"]["contents"][4]["action"]["data"] += f"&{id}" # 檢視自選股
+    
+        if added_already:
+            TradeinfoFlexMessage["body"]["contents"][3]["action"]["label"] = "移出自選股"
+            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"]  = f"delFavorite&{id}" # 取消自選股
+        else:
+            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{id}" # 加入自選股
+            print(TradeinfoFlexMessage["body"]["contents"][3]["action"])
+
+    
         
     CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
 
@@ -324,7 +363,7 @@ def search_output(user_id, reply_token, uniid, company):
     StockNews = Stock_news.today_update_check(stock_code, stock_name)
 
     if StockNews is not None and len(StockNews[0].stock_news_title) > 0:
-        NewsFlexMessage["body"]["contents"][0]["text"] = stock_name # 修改公司名稱
+        NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
         NewsByYear = {}
         ContentBox = [] # 年份&新聞BOX
         for news in StockNews:
@@ -344,9 +383,7 @@ def search_output(user_id, reply_token, uniid, company):
                 ContentBox.append(NewsBox) # 再放新聞
         NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
     else:
-        NewsFlexMessage["body"]["contents"][0]["text"] = stock_name
-        # NewsFlexMessage["body"]["contents"][1]["contents"][1]["contents"]["text"] = "無"
-        # NewsFlexMessage["body"]["contents"][1]["contents"].pop()
+        NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
     
     CarouselMessage["contents"].append(NewsFlexMessage) # 放入Carousel
 
@@ -357,7 +394,7 @@ def search_output(user_id, reply_token, uniid, company):
 # 輸出使用者自選股
 def favorite_output(userid, reply_token, data):
     FavoriteFlexMessage = json.load(open("templates/user_stock.json","r",encoding="utf-8"))
-    FavoriteFlexMessage["body"]["contents"].clear()
+    # FavoriteFlexMessage["body"]["contents"].clear()
 
     stocks = Stock.find_by_ids(data.stock_ids)
 
@@ -366,7 +403,7 @@ def favorite_output(userid, reply_token, data):
                 "type"  : "button",
                 "action": {
                     "type"  : "postback",
-                    "label" : f"{stock.stock_name}　　500 / 股",
+                    "label" : f"{stock.stock_name}",
                     "data"  : f"stock&{stock.id}"
                 },
                 "height": "sm"
