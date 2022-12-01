@@ -362,28 +362,31 @@ def search_output(user_id, reply_token, uniid, company):
 
     StockNews = Stock_news.today_update_check(stock_code, stock_name)
 
-    if StockNews is not None and len(StockNews[0].stock_news_title) > 0:
+    if StockNews is None:
         NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
-        NewsByYear = {}
-        ContentBox = [] # 年份&新聞BOX
-        for news in StockNews:
-            year = news.stock_news_date.split("-")[0]
-            if year not in NewsByYear:
-                NewsByYear[year] = []
-            NewsByYear[year].append(news)
-        for year in NewsByYear:
-            YearBox = copy.deepcopy(YearBoxSample)
-            YearBox["contents"][0]["text"] = year + "年"
-            ContentBox.append(YearBox) # 先放年份
-            for news in NewsByYear[year]:
-                NewsBox = copy.deepcopy(NewsBoxSample)
-                NewsBox["contents"][0]["contents"][0]["text"] = news.stock_news_title
-                NewsBox["contents"][0]["contents"][0]["action"]['uri'] = news.stock_news_url
-                NewsBox["contents"][0]["contents"][1]["text"] = news.stock_news_date.split("-")[1] + "/" + news.stock_news_date.split("-")[2]
-                ContentBox.append(NewsBox) # 再放新聞
-        NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
     else:
-        NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
+        if len(StockNews[0].stock_news_title) > 0:
+            NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
+            NewsByYear = {}
+            ContentBox = [] # 年份&新聞BOX
+            for news in StockNews:
+                year = news.stock_news_date.split("-")[0]
+                if year not in NewsByYear:
+                    NewsByYear[year] = []
+                NewsByYear[year].append(news)
+            for year in NewsByYear:
+                YearBox = copy.deepcopy(YearBoxSample)
+                YearBox["contents"][0]["text"] = year + "年"
+                ContentBox.append(YearBox) # 先放年份
+                for news in NewsByYear[year]:
+                    NewsBox = copy.deepcopy(NewsBoxSample)
+                    NewsBox["contents"][0]["contents"][0]["text"] = news.stock_news_title
+                    NewsBox["contents"][0]["contents"][0]["action"]['uri'] = news.stock_news_url
+                    NewsBox["contents"][0]["contents"][1]["text"] = news.stock_news_date.split("-")[1] + "/" + news.stock_news_date.split("-")[2]
+                    ContentBox.append(NewsBox) # 再放新聞
+            NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
+        else:
+            NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
     
     CarouselMessage["contents"].append(NewsFlexMessage) # 放入Carousel
 
