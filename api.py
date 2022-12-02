@@ -6,7 +6,7 @@ from models.shared_db_model import db
 
 # 用統一編號 找 公司
 def get_company_by_uniid(uniid):
-    print(f" ------------ 統一編號找公司  {uniid} ------------")
+    print(f" ------------ [api] - 統一編號找公司  {uniid} ------------")
     url      = requests.get("https://company.g0v.ronny.tw/api/show/{0}".format(uniid))
     text     = url.text
     json_obj = json.loads(text)
@@ -21,7 +21,7 @@ def get_company_by_uniid(uniid):
 
 # 用公司名稱 找 統一編號
 def get_uniid_by_name(stock_full_name):
-    print(f" ------------ 公司名稱查詢統一編號  {stock_full_name} ------------")
+    print(f" ------------ [api] - 公司名稱查詢統一編號  {stock_full_name} ------------")
     if not stock_full_name:
         return False
     uniid = ''
@@ -47,7 +47,7 @@ def get_uniid_by_name(stock_full_name):
 
 # 確認公司股票代號是否存在
 def check_code_exist(stock_code):
-    print(f" ------------ 股票代號查詢公司  {stock_code} ------------")
+    print(f" ------------ [api] - 股票代號查詢公司  {stock_code} ------------")
     url = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp?json=1&delay=0&ex_ch=tse_{0}.tw%7C".format(stock_code)
     html  = requests.get(url)
     html_text = html.text
@@ -61,7 +61,7 @@ def check_code_exist(stock_code):
 
 # 關鍵字找公司名稱
 def parse_by_keyword(keyword):
-    print(f"\n ------------ 資料庫無資料，爬蟲關鍵字找公司名稱 : {keyword} ------------")
+    print(f"\n ------------ [api] - 爬蟲關鍵字找公司名稱 : {keyword} ------------")
     url = f"https://data.gcis.nat.gov.tw/od/data/api/6BBA2268-1367-4B42-9CCA-BC17499EBE8C?$format=json&$filter=Company_Name like {keyword} and Company_Status eq 01&$skip=0&$top=50"
     html  = requests.get(url)
     html_text = html.text

@@ -25,7 +25,7 @@ class Stock(db.Model):
 
 
     def find_by_name(name, type=False):
-        print(f" ------------ 依公司簡稱查詢公司 Company_name: {name} ------------")
+        print(f" ------------ [model] - 依公司簡稱查詢公司 Company_name: {name} ------------")
         if not name:
             return False
         name_filter = Stock.stock_name.like('%{}%'.format(name))
@@ -39,7 +39,7 @@ class Stock(db.Model):
 
 
     def find_by_fullname(name):
-        print(f" ------------ 依公司全名查詢公司  :  {name} ------------")
+        print(f" ------------ [model] - 依公司全名查詢公司  :  {name} ------------")
         data = Stock.query.filter_by(stock_full_name=name).first()
         return data
 
@@ -48,7 +48,7 @@ class Stock(db.Model):
         if not name:
             return False
         l = len(name)
-        print(f" ------------ 依公司全名查詢公司(like)  :  {name}   length: {l} ------------")
+        print(f" ------------ [model] - 依公司全名查詢公司(like)  :  {name}   length: {l} ------------")
         name_filter = Stock.stock_full_name.like('%{}%'.format(name[:l]))
         if type:
             type_filter = Stock.stock_type==type

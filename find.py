@@ -6,7 +6,7 @@ from models.stock_model import Stock
 
 # 用公司名稱 找 股票代號
 def get_company_by_name(name):
-    print(f"\n ------------ 公司名稱查詢股票代號  {name} ------------")
+    print(f"\n ------------ [find] - 公司名稱查詢股票代號  {name} ------------")
 
     if name:
         company = Stock.find_by_fullname(name) # 先搜尋全名

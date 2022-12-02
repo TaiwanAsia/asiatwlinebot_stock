@@ -8,6 +8,7 @@ from models.stock_model import Stock
 from models.stock_news_model import Stock_news
 from models.shared_db_model import db
 from api import get_uniid_by_name
+import logging, os
 
 
 
@@ -22,9 +23,14 @@ def crawler(target_hour, target_minute, db, debugging, app):
         dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
 
+        logger = setup_logging(now)
+
         if (now.hour == target_hour and now.minute == target_minute) or debugging:
             time.sleep(1)
+
             print("\n\n*****  CRAWLING...  *****",now,"\n")
+
+            
 
             if debugging == 2:
                 parse_company(db, app)          # 清空Stock表，爬證交所公司資料
@@ -34,6 +40,8 @@ def crawler(target_hour, target_minute, db, debugging, app):
             parse_company_fullname(db, app) # 更新全名、統一編號
 
             debugging = False
+
+        
 
         time.sleep(58)
 
@@ -45,9 +53,25 @@ def crawler(target_hour, target_minute, db, debugging, app):
 
 def parse_company(db, app):
 
+    logger = logging.getLogger('allLogger')
+    logger.info('Start Running [parse_company].')
+
     with app.app_context():
+
+        try:
+            sql = "TRUNCATE `linebot_stock`.`stock`;" # Clear data
+            db.engine.execute(sql)
+            logger.info('Clear table `stock` Successfully.')
+        except Exception as e:
+            db.session.rollback()
+            print(e)
+            logger.error('Clear table `stock` Failed. ' + e)
+
+
         ##### 1 未上市、櫃公司
         print(f"\n ------------ 爬蟲開始: 未上市、櫃公司 ------------")
+        logger.info('Start crawling: 未上市、櫃公司')
+
         url = 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=1'
         print(f" ------------ 目標網址: {url} ------------")
         html = requests.get(url)
@@ -55,17 +79,8 @@ def parse_company(db, app):
         res_html = html.text
         soup = BeautifulSoup(res_html, 'html.parser')
         target_table = soup.select_one("table.h4") # Locate data
-        # print(target_table)
         target_trs = target_table.find_all('tr')
 
-        print("網頁擷取完畢，開始寫進資料庫。")
-
-        try:
-            sql = "TRUNCATE `linebot_stock`.`stock`;" # Clear data
-            db.engine.execute(sql)
-        except Exception as e:
-            db.session.rollback()
-            print(e)
         
         for tr in target_trs:
             filtered_keyword = ['有價證券代號及名稱', '股票']
@@ -79,12 +94,19 @@ def parse_company(db, app):
                 insert_data = {'stock_code': code, 'stock_name': name, 'stock_full_name': '', 'listing_date': listing_date, 'stock_type': 1, 'category': category}
                 new_stock = Stock(**insert_data)
                 db.session.add(new_stock)
-        db.session.commit()
+        try:                  
+            db.session.commit()
+            logger.info('Insert table `stock` Successfully.')
+        except Exception as e:
+            db.session.rollback()
+            logger.error('Insert table `stock` Failed. ' + e)
 
         time.sleep(2)
 
         ##### 2 上市、櫃公司
         print(f"\n ------------ 爬蟲開始: 上市、櫃公司 ------------")
+        logger.info('Start crawling: 上市、櫃公司')
+
         url = 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=2'
         print(f" ------------ 目標網址: {url} ------------")
         html = requests.get(url)
@@ -107,20 +129,30 @@ def parse_company(db, app):
                 insert_data = {'stock_code': code, 'stock_name': name, 'stock_full_name': '', 'listing_date': listing_date, 'stock_type': 2, 'category': category}
                 new_stock = Stock(**insert_data)
                 db.session.add(new_stock)
-        db.session.commit()
+        try:                  
+            db.session.commit()
+            logger.info('Insert table `stock` Successfully.')
+        except Exception as e:
+            db.session.rollback()
+            logger.error('Insert table `stock` Failed. ' + e)
 
 
 
 def parse_company_price(db, app):
     ##### 3 未上市股價
 
+    logger = logging.getLogger('allLogger')
+    logger.info('Start Running [parse_company_price].')
+
     with app.app_context():
         try:
             sql = "TRUNCATE `linebot_stock`.`dataset_day`;" # Clear data
             db.engine.execute(sql)
+            logger.info('Clear table `stock` Successfully.')
         except Exception as e:
             db.session.rollback()
             print(e)
+            logger.error('Clear table `stock` Failed. ' + e)
 
         #### 3.1 必富網熱門 Top100
         print(f"\n ------------ 爬蟲開始: 必富網熱門Top100 ------------")
@@ -151,8 +183,16 @@ def parse_company_price(db, app):
             , buy_average=dataset['買均'], buy_average_yesterday=dataset['買昨均'], buy_change_percent=dataset['買漲跌幅'], sell_amount=dataset['★賣張']
             , sell_high=dataset['賣高'], sell_low=dataset['賣低'], sell_average=dataset['賣均'],
             sell_average_yesterday=dataset['賣昨均'], sell_change_percent=dataset['賣漲跌幅'])
-            db.session.add(newInput)
-            db.session.commit()
+            try:
+                db.session.add(newInput)
+                db.session.commit()
+                
+            except Exception as e:
+                db.session.rollback()
+                print(e)
+                logger.error('Insert table `Dataset_day` Failed. ' + e)
+        logger.info('Insert table `Dataset_day` Successfully.')
+
         print(f"\n ------------ 爬蟲結束: 必富網熱門Top100 ------------")
 
 
@@ -184,10 +224,15 @@ def parse_company_price(db, app):
 
 def parse_company_fullname(db, app):
     ##### 4 更新上市、未上市公司全名
+    
+    logger = logging.getLogger('allLogger')
+    logger.info('Start Running [parse_company_fullname].')
 
     with app.app_context():
 
         print(f"\n ------------ 爬蟲開始: 更新上市公司全名 ------------")
+        logger.info('Start crawling: 更新上市公司全名')
+
         sql = "SET SQL_SAFE_UPDATES=0"
         db.engine.execute(sql)
         stocks = Stock.query.filter_by(stock_type=2)
@@ -207,27 +252,33 @@ def parse_company_fullname(db, app):
                 new_url = url[:position1] + target_url + url[position2:]
                 urls.append(new_url)
                 target_url= ''
-        print(f"--------------------   共{len(urls)}批  送出請求   --------------------")
+        print(f" ------------   共{len(urls)}批  送出請求   ------------ ")
         for index, url in enumerate(urls):
-            print(f"--------------------   第{index}批  送出請求   --------------------")
+            print(f" ------------   第{index}批  送出請求   ------------ ")
             url  = requests.get(url)
             text = url.text
             json_obj = json.loads(text)
-            print(f"--------------------   第{index}批  寫入資料庫   --------------------")
+            print(f" ------------   第{index}批  寫入資料庫   ------------ ")
             for cmp in json_obj['msgArray']:
                 if 'nf' in cmp:
                     stock_full_name = cmp['nf'].replace("臺","台")
                 stock_code = cmp['c']
                 sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}' WHERE stock_code = '{stock_code}'"
                 try:
-                    db.engine.execute(sql)
+                    db.engine.execute(sql)        
                 except Exception as e:
+                    db.session.rollback()
                     print(e)
+                    logger.error('Update table `stock` Failed. ' + e)
+            logger.info(f'Update table `stock` - 1 ({index}) Successfully.')
+
             time.sleep(10) # 以防被鎖IP
         print(f" ------------ 爬蟲結束: 更新上市公司全名 ------------")
 
 
         print(f"\n ------------ 爬蟲開始: 更新公司統一編號、全名 ------------")
+        logger.info('Start crawling: 更新上市公司統一編號、全名')
+
         companies = Dataset_day.query.filter_by(website_id=1).all()
         for company in companies:
             name = company.company_name.split("\xa0")[0]
@@ -240,11 +291,19 @@ def parse_company_fullname(db, app):
                     count, target = Stock.find_by_name(name[:3], 1)
                 if count == 1:
                     sql = f"UPDATE stock SET stock_full_name = '{stock_full_name}', stock_uniid = '{uniid}' WHERE id = '{target[0].id}'"
-                    db.engine.execute(sql)
+                    try:
+                        db.engine.execute(sql)
+                    except Exception as e:
+                        db.session.rollback()
+                        print(e)
+                        logger.error('Update table `stock` Failed. ' + e)
+
                     print(f"更新成功！   {target[0].stock_full_name} => {stock_full_name}")
                 else:
                     pass
                     # print("Stock中沒有符合的資料。")
+        logger.info('Update table `stock` - 2 Successfully.')
+
         print(f" ------------ 爬蟲結束: 更新公司統一編號、全名 ------------")
 
 
@@ -254,6 +313,9 @@ def parse_company_fullname(db, app):
 # 鉅亨網
 #######################################  鉅亨網新聞  #######################################
 def parse_cnyesNews(stock_code, company_name):
+
+    logger = logging.getLogger('allLogger')
+    logger.info('Start Running [parse_cnyesNews].')
 
     print(f"\n ------------ 爬蟲開始: 鉅亨網 {stock_code} {company_name} ------------")
 
@@ -300,10 +362,46 @@ def parse_cnyesNews(stock_code, company_name):
         print("\n插入空資料")
         list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title='', stock_news_url='', stock_news_date='1980-01-01'))
 
-    db.session.add_all(list_added)
-    db.session.commit()    
+    try:
+        db.session.add_all(list_added)
+        db.session.commit()
+        logger.info('Insert table `Stock_news` Successfully.')
+    except Exception as e:
+        db.session.rollback()
+        logger.error('Insert table `Stock_news` Failed. ' + e)
+
     print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
     
     
     # check = Stock_news.today_update_check(stock_code, company_name)
     # return check
+
+
+
+def setup_logging(now):
+    date_today = datetime.strftime(now, '%Y-%m-%d')
+    
+    logName = date_today + '.log'
+    logDir  = 'log'
+    logPath = logDir + '/' + logName
+
+    os.makedirs(logDir,exist_ok=True)
+
+    allLogger = logging.getLogger('allLogger')
+    allLogger.setLevel(logging.DEBUG)
+
+    fileHandler = logging.FileHandler(logPath, encoding='utf-8',mode='a')
+    fileHandler.setLevel(logging.INFO)
+
+    streamHandler = logging.StreamHandler()
+    streamHandler.setLevel(logging.WARNING)
+
+    AllFormatter = logging.Formatter("%(asctime)s - [line:%(lineno)d] - %(levelname)s: %(message)s")
+    fileHandler.setFormatter(AllFormatter)
+    streamHandler.setFormatter(AllFormatter)
+
+    allLogger.addHandler(fileHandler)
+    allLogger.addHandler(streamHandler)
+
+    return allLogger
+
