@@ -13,9 +13,9 @@ from models.stock_model import Stock
 from models.dataset_day_model import Dataset_day
 from models.user_favorite_stock_model import User_favorite_stock
 from models.stock_news_model import Stock_news
-from find import get_company_by_name
+# from find import get_company_by_name
 from api import get_uniid_by_name, check_code_exist, get_company_by_uniid, parse_by_keyword
-from news import check_news
+# from news import check_news
 import re, time, _thread, copy, time
 import json, requests, sys, pymysql
 
