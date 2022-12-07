@@ -96,10 +96,10 @@ def parse_company(db, app):
                 db.session.add(new_stock)
         try:                  
             db.session.commit()
-            logger.info('Insert table `stock` Successfully.')
+            # logger.info('Insert table `stock` Successfully.')
         except Exception as e:
             db.session.rollback()
-            logger.error('Insert table `stock` Failed. ' + e)
+            logger.error(f"Insert table `stock` Failed. - {name} " + e)
 
         time.sleep(2)
 
@@ -131,10 +131,10 @@ def parse_company(db, app):
                 db.session.add(new_stock)
         try:                  
             db.session.commit()
-            logger.info('Insert table `stock` Successfully.')
+            # logger.info('Insert table `stock` Successfully.')
         except Exception as e:
             db.session.rollback()
-            logger.error('Insert table `stock` Failed. ' + e)
+            logger.error(f'Insert table `stock` Failed. - {name}' + e)
 
 
 
@@ -142,7 +142,7 @@ def parse_company_price(db, app):
     ##### 3 未上市股價
 
     logger = logging.getLogger('allLogger')
-    logger.info('Start Running [parse_company_price].')
+    # logger.info('Start Running [parse_company_price].')
 
     with app.app_context():
         try:
@@ -156,6 +156,7 @@ def parse_company_price(db, app):
 
         #### 3.1 必富網熱門 Top100
         print(f"\n ------------ 爬蟲開始: 必富網熱門Top100 ------------")
+        logger.info('------------ 爬蟲開始: 必富網熱門Top100 ------------')
         website_id = 1
         fp = urllib.request.urlopen('https://www.berich.com.tw/DP/OrderList/List_Hot.asp').read()
         text = fp.decode('Big5')
@@ -190,10 +191,11 @@ def parse_company_price(db, app):
             except Exception as e:
                 db.session.rollback()
                 print(e)
-                logger.error('Insert table `Dataset_day` Failed. ' + e)
-        logger.info('Insert table `Dataset_day` Successfully.')
+                logger.error(f'Insert table `Dataset_day` Failed. - {dataset["未上市櫃股票公司名稱"]} ' + e)
+        # logger.info('Insert table `Dataset_day` Successfully.')
 
         print(f"\n ------------ 爬蟲結束: 必富網熱門Top100 ------------")
+        logger.info('------------ 爬蟲結束: 必富網熱門Top100 ------------')
 
 
     # ##### 3.2 台灣投資達人熱門 Top100
@@ -226,12 +228,12 @@ def parse_company_fullname(db, app):
     ##### 4 更新上市、未上市公司全名
     
     logger = logging.getLogger('allLogger')
-    logger.info('Start Running [parse_company_fullname].')
+    # logger.info('Start Running [parse_company_fullname].')
 
     with app.app_context():
 
         print(f"\n ------------ 爬蟲開始: 更新上市公司全名 ------------")
-        logger.info('Start crawling: 更新上市公司全名')
+        # logger.info('Start crawling: 更新上市公司全名')
 
         sql = "SET SQL_SAFE_UPDATES=0"
         db.engine.execute(sql)
@@ -269,15 +271,15 @@ def parse_company_fullname(db, app):
                 except Exception as e:
                     db.session.rollback()
                     print(e)
-                    logger.error('Update table `stock` Failed. ' + e)
-            logger.info(f'Update table `stock` - 1 ({index}) Successfully.')
+                    logger.error(f'Update table `stock` Failed. - {stock_code} ' + e)
+            # logger.info(f'Update table `stock` - 1 ({index}) Successfully.')
 
             time.sleep(10) # 以防被鎖IP
         print(f" ------------ 爬蟲結束: 更新上市公司全名 ------------")
 
 
         print(f"\n ------------ 爬蟲開始: 更新公司統一編號、全名 ------------")
-        logger.info('Start crawling: 更新上市公司統一編號、全名')
+        # logger.info('Start crawling: 更新上市公司統一編號、全名')
 
         companies = Dataset_day.query.filter_by(website_id=1).all()
         for company in companies:
@@ -296,13 +298,13 @@ def parse_company_fullname(db, app):
                     except Exception as e:
                         db.session.rollback()
                         print(e)
-                        logger.error('Update table `stock` Failed. ' + e)
+                        logger.error(f"Update table `stock` Failed. - {name} " + e)
 
                     print(f"更新成功！   {target[0].stock_full_name} => {stock_full_name}")
                 else:
                     pass
                     # print("Stock中沒有符合的資料。")
-        logger.info('Update table `stock` - 2 Successfully.')
+        # logger.info('Update table `stock` - 2 Successfully.')
 
         print(f" ------------ 爬蟲結束: 更新公司統一編號、全名 ------------")
 
@@ -365,7 +367,7 @@ def parse_cnyesNews(stock_code, company_name):
     try:
         db.session.add_all(list_added)
         db.session.commit()
-        logger.info('Insert table `Stock_news` Successfully.')
+        # logger.info('Insert table `Stock_news` Successfully.')
     except Exception as e:
         db.session.rollback()
         logger.error('Insert table `Stock_news` Failed. ' + e)
@@ -381,7 +383,7 @@ def parse_cnyesNews(stock_code, company_name):
 def setup_logging(now):
     date_today = datetime.strftime(now, '%Y-%m-%d')
     
-    logName = date_today + '.log'
+    logName = date_today + '_crawler' + '.log'
     logDir  = 'log'
     logPath = logDir + '/' + logName
 

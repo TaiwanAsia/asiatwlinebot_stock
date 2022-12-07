@@ -2,3 +2,4 @@ ngrok.exe
 config.py
 __pycache__
 cnyes.html
+log/
