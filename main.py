@@ -1,11 +1,13 @@
 from base64 import encode
 from random import random
 from urllib.parse import quote
-from flask import Flask, request, abort
+from flask import Flask, request, abort, render_template, redirect, url_for
 from linebot import (LineBotApi, WebhookHandler)
 from linebot.exceptions import (InvalidSignatureError)
 from linebot.models import *
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import exc
+from werkzeug.utils import secure_filename
 from datetime import datetime
 from crawler import crawler, parse_cnyesNews
 from models.shared_db_model import db
@@ -13,15 +15,22 @@ from models.stock_model import Stock
 from models.dataset_day_model import Dataset_day
 from models.user_favorite_stock_model import User_favorite_stock
 from models.stock_news_model import Stock_news
-# from find import get_company_by_name
+from models.company_model import Company
 from api import get_uniid_by_name, check_code_exist, get_company_by_uniid, parse_by_keyword
-# from news import check_news
 import re, time, _thread, copy, time
-import json, requests, sys, pymysql
+import json, requests, sys, pymysql, csv
+import pandas as pd
+from common.logging import setup_logging
+import logging
 
 
 app = Flask(__name__)
 
+UPLOAD_FOLDER = "./uploads/"
+ALLOWED_EXTENSIONS = set(['csv'])
+
+app.config['UPLOAD_FOLDER']      = UPLOAD_FOLDER
+app.config['ALLOWED_EXTENSIONS'] = 300 * 1024 * 1024  # 300MB
 
 # 匯入設定
 import config
@@ -43,7 +52,109 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 db.init_app(app)
 
 
+WeblogDir = 'web'
+WebloggerName = WeblogDir+'allLogger'
+setup_logging(WeblogDir)
+Weblogger = logging.getLogger(WebloggerName)
+
+
+
+
+@app.route("/home", defaults={'message':''}, methods=['GET', 'POST'])
+def home(message):
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and allowed_file(file.filename):
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            # filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'BGMOPEN1.csv'))
+
+            result = bgmopen_operator()
+
+            if result is False:
+                return render_template("home.html", message='檔案上傳失敗')
     
+            return render_template("home.html", message='成功!!')
+        else:
+            return render_template("home.html", message='檔案格式不符合')
+
+    return render_template("home.html", message=message)
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+def bgmopen_operator():
+    usecols = ['統一編號', '總機構統一編號', '營業人名稱', '資本額', '設立日期', '組織別名稱',
+        '行業代號', '名稱', '行業代號1', '名稱1', '行業代號2', '名稱2', '行業代號3', '名稱3']
+    data_type = {"統一編號": str, "總機構統一編號": str, '資本額': str, "設立日期": str, "行業代號": str
+    , "行業代號1": str, "行業代號2": str, "行業代號3": str}
+
+    pd_bgmopen = pd.read_csv("uploads/BGMOPEN1.csv", usecols=usecols, dtype=data_type)
+
+    pd_bgmopen.columns = ['uniid', 'top_uniid', 'business_entity', 'capital', 'establishment_date', 'company_type',
+        'industrial_classification', 'industrial_name', 'industrial_classification_1', 'industrial_name_1', 'industrial_classification_2', 'industrial_name_2',
+        'industrial_classification_3', 'industrial_name_3']
+
+    char_substitute = {
+        b'\xf0\xa3\x87\x93' : '鼎',
+        b'\xf0\xa7\x99\x97' : '佑',
+        b'\xf0\xa5\xb4\x8a' : '𥴊'
+    }
+
+    for i in range(0,16):
+        if i == 15:
+            df = pd_bgmopen.iloc[100000*i : ]
+        else:
+            df = pd_bgmopen.iloc[1+100000*i : 100000*(1+i)]
+        
+        print(f'Data:  ',(1+100000*i) , '-', (100000*(1+i)))
+        Weblogger.info(f'Data:  ',(1+100000*i) , '-', (100000*(1+i)))
+
+        drop_indices = []
+        
+        for index, row in df.iterrows():
+            if row['company_type'] in ['獨資', '合夥', '其他', '合作社']:
+                drop_indices.append(index)
+            for char_index, char in enumerate(row['business_entity']):
+                if len(char.encode('utf-8')) > 3:
+                    if char.encode('utf-8') in char_substitute:
+                        replace = char_substitute[char.encode('utf-8')]
+                    else:
+                        replace = 'X'
+                        # print(f'[{index}]-encode : ', row['uniid'], row['business_entity'], char.encode('utf-8'))
+                    pd_bgmopen.loc[index, "business_entity"] = pd_bgmopen.iloc[index]['business_entity'][:char_index] + replace + pd_bgmopen.iloc[index]['business_entity'][char_index+1:]
+        df.drop(drop_indices, axis=0, inplace=True)
+
+        try:
+            df.to_sql('company', db.engine, if_exists='append', index=False, chunksize=5000)
+        except (exc.IntegrityError, exc.DataError) as e:
+            Weblogger.error('Insert db.  數據錯誤')
+            Weblogger.error(e)
+            return False
+        except Exception as e:
+            Weblogger.error('Insert db.  未知錯誤')
+            Weblogger.error(e)
+            return False
+        else:
+            Weblogger.info(f'Insert db  Successfully.')
+
+    return False
+
+    
+
+    
+
+
+#############################################################
+#                   上面區塊 web     程式碼                  #
+#############################################################
+#                   以下皆是 linebot 程式碼                  #
+#############################################################
+
+
+
 
 # 監測
 @app.route("/callback", methods=['POST'])
@@ -362,7 +473,7 @@ def search_output(user_id, reply_token, uniid, company):
 
     StockNews = Stock_news.today_update_check(stock_code, stock_name)
 
-    if StockNews is None:
+    if StockNews is None or len(StockNews) < 1:
         NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
     else:
         if len(StockNews[0].stock_news_title) > 0:

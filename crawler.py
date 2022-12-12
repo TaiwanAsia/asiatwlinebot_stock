@@ -8,11 +8,15 @@ from models.stock_model import Stock
 from models.stock_news_model import Stock_news
 from models.shared_db_model import db
 from api import get_uniid_by_name
-import logging, os
+from common.logging import setup_logging
+import logging
 
 
 
-    
+logDir = 'crawler'
+loggerName = logDir+'allLogger'
+setup_logging(logDir)
+logger = logging.getLogger(loggerName)
 
 
 
@@ -22,8 +26,6 @@ def crawler(target_hour, target_minute, db, debugging, app):
     while 1 == 1:
         dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
-
-        logger = setup_logging(now)
 
         if (now.hour == target_hour and now.minute == target_minute) or debugging:
             time.sleep(1)
@@ -53,7 +55,6 @@ def crawler(target_hour, target_minute, db, debugging, app):
 
 def parse_company(db, app):
 
-    logger = logging.getLogger('allLogger')
     logger.info('Start Running [parse_company].')
 
     with app.app_context():
@@ -141,9 +142,6 @@ def parse_company(db, app):
 def parse_company_price(db, app):
     ##### 3 未上市股價
 
-    logger = logging.getLogger('allLogger')
-    # logger.info('Start Running [parse_company_price].')
-
     with app.app_context():
         try:
             sql = "TRUNCATE `linebot_stock`.`dataset_day`;" # Clear data
@@ -227,13 +225,10 @@ def parse_company_price(db, app):
 def parse_company_fullname(db, app):
     ##### 4 更新上市、未上市公司全名
     
-    logger = logging.getLogger('allLogger')
-    # logger.info('Start Running [parse_company_fullname].')
 
     with app.app_context():
 
         print(f"\n ------------ 爬蟲開始: 更新上市公司全名 ------------")
-        # logger.info('Start crawling: 更新上市公司全名')
 
         sql = "SET SQL_SAFE_UPDATES=0"
         db.engine.execute(sql)
@@ -259,7 +254,10 @@ def parse_company_fullname(db, app):
             print(f" ------------   第{index}批  送出請求   ------------ ")
             url  = requests.get(url)
             text = url.text
-            json_obj = json.loads(text)
+            try:
+                json_obj = json.loads(text)
+            except Exception as e:
+                logger.error(f'JSON error: ' + e)
             print(f" ------------   第{index}批  寫入資料庫   ------------ ")
             for cmp in json_obj['msgArray']:
                 if 'nf' in cmp:
@@ -279,7 +277,6 @@ def parse_company_fullname(db, app):
 
 
         print(f"\n ------------ 爬蟲開始: 更新公司統一編號、全名 ------------")
-        # logger.info('Start crawling: 更新上市公司統一編號、全名')
 
         companies = Dataset_day.query.filter_by(website_id=1).all()
         for company in companies:
@@ -316,21 +313,28 @@ def parse_company_fullname(db, app):
 #######################################  鉅亨網新聞  #######################################
 def parse_cnyesNews(stock_code, company_name):
 
-    logger = logging.getLogger('allLogger')
-    logger.info('Start Running [parse_cnyesNews].')
-
     print(f"\n ------------ 爬蟲開始: 鉅亨網 {stock_code} {company_name} ------------")
+    logger.info(f"------------ 爬蟲開始: 鉅亨網 {stock_code} {company_name} ------------")
 
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.chrome.options import Options
 
+    # ------  Chrome有更新時
+    # 1. 前往https://sites.google.com/chromium.org/driver/downloads?authuser=0下載與電腦chrome對應的driver版本
+    # 2. 將下載解壓縮後的 chromedriver.exe 放到以下路徑
     s = Service(r"C:\Program Files\Google\Chrome\Application\chromedriver.exe") # selenium 瀏覽器選項配置
+    
+    
     chrome_options = Options()
     chrome_options.use_chromium = True
     chrome_options.add_argument("headless")
 
-    browser = webdriver.Chrome(options=chrome_options, service=s) # 初始化 webdriver
+    try:
+        browser = webdriver.Chrome(options=chrome_options, service=s) # 初始化 webdriver
+    except Exception as e:
+        logger.error(e)
+        return
     browser.maximize_window()
     # url = f'https://www.cnyes.com/search/news?keyword={company_name}' # 另一個頁面，也可撈
     url = f'https://news.cnyes.com/search?q={company_name}' # 取得網頁內容
@@ -367,43 +371,8 @@ def parse_cnyesNews(stock_code, company_name):
     try:
         db.session.add_all(list_added)
         db.session.commit()
-        # logger.info('Insert table `Stock_news` Successfully.')
     except Exception as e:
         db.session.rollback()
         logger.error('Insert table `Stock_news` Failed. ' + e)
 
     print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
-    
-    
-    # check = Stock_news.today_update_check(stock_code, company_name)
-    # return check
-
-
-
-def setup_logging(now):
-    date_today = datetime.strftime(now, '%Y-%m-%d')
-    
-    logName = date_today + '_crawler' + '.log'
-    logDir  = 'log'
-    logPath = logDir + '/' + logName
-
-    os.makedirs(logDir,exist_ok=True)
-
-    allLogger = logging.getLogger('allLogger')
-    allLogger.setLevel(logging.DEBUG)
-
-    fileHandler = logging.FileHandler(logPath, encoding='utf-8',mode='a')
-    fileHandler.setLevel(logging.INFO)
-
-    streamHandler = logging.StreamHandler()
-    streamHandler.setLevel(logging.WARNING)
-
-    AllFormatter = logging.Formatter("%(asctime)s - [line:%(lineno)d] - %(levelname)s: %(message)s")
-    fileHandler.setFormatter(AllFormatter)
-    streamHandler.setFormatter(AllFormatter)
-
-    allLogger.addHandler(fileHandler)
-    allLogger.addHandler(streamHandler)
-
-    return allLogger
-
