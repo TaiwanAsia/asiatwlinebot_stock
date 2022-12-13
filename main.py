@@ -126,10 +126,17 @@ def bgmopen_operator():
 
 @app.route("/upstream_downstream", methods=['GET', 'POST'])
 def upstream_downstream():
+    industries = industry_model.Industry.query.limit(100).all()
     if request.method == 'POST':
-        pass
-    industry_model.Industry
-    return render_template("upstream_downstream.html")
+        downstream_1 = request.form.get('downstream_1')
+        print(downstream_1)
+    return render_template("upstream_downstream.html", industries=industries, len=len(industries))
+
+@app.route("/get_industries", methods=['GET'])
+def get_industries():
+    industries = industry_model.Industry.query.limit(100).all()
+    json_industries = json.dumps(industries)
+    return json_industries
     
 
     

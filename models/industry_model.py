@@ -7,6 +7,10 @@ class Industry(db.Model):
     id    = db.Column(db.Integer, primary_key=True)
     code  = db.Column(db.String, nullable=False)
     name  = db.Column(db.String, nullable=True)
+    upstream_1   = db.Column(db.String, nullable=True)
+    upstream_2   = db.Column(db.String, nullable=True)
+    downstream_1 = db.Column(db.String, nullable=True)
+    downstream_2 = db.Column(db.String, nullable=True)
 
     def __repr__(self):
         return '<Company %r  %r %r>' % (self.id, self.code, self.name)
