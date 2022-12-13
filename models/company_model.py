@@ -19,3 +19,10 @@ class Company(db.Model):
 
     def __repr__(self):
         return '<Company %r  %r %r %r>' % (self.business_entity, self.uniid, self.company_type, self.industrial_name_1)
+
+
+    def find_by_uniid(uniid):
+        return Company.query.filter_by(uniid=uniid).first()
+
+    def find_by_entity(business_entity):
+        return Company.query.filter_by(business_entity=business_entity).first()

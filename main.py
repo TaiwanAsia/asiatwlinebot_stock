@@ -1,7 +1,4 @@
-from base64 import encode
-from random import random
-from urllib.parse import quote
-from flask import Flask, request, abort, render_template, redirect, url_for
+from flask import Flask, request, abort, render_template
 from linebot import (LineBotApi, WebhookHandler)
 from linebot.exceptions import (InvalidSignatureError)
 from linebot.models import *
@@ -12,13 +9,10 @@ from datetime import datetime
 from crawler import crawler, parse_cnyesNews
 from models.shared_db_model import db
 from models.stock_model import Stock
-from models.dataset_day_model import Dataset_day
-from models.user_favorite_stock_model import User_favorite_stock
-from models.stock_news_model import Stock_news
-from models.company_model import Company
+from models import dataset_day_model, user_favorite_stock_model, stock_news_model, company_model, industry_model
 from api import get_uniid_by_name, check_code_exist, get_company_by_uniid, parse_by_keyword
-import re, time, _thread, copy, time
-import json, requests, sys, pymysql, csv
+import re, _thread, copy
+import json, sys,os
 import pandas as pd
 from common.logging import setup_logging
 import logging
@@ -68,16 +62,12 @@ def home(message):
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
             # filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'BGMOPEN1.csv'))
-
             result = bgmopen_operator()
-
             if result is False:
                 return render_template("home.html", message='檔案上傳失敗')
-    
             return render_template("home.html", message='成功!!')
         else:
             return render_template("home.html", message='檔案格式不符合')
-
     return render_template("home.html", message=message)
 
 
@@ -90,30 +80,23 @@ def bgmopen_operator():
         '行業代號', '名稱', '行業代號1', '名稱1', '行業代號2', '名稱2', '行業代號3', '名稱3']
     data_type = {"統一編號": str, "總機構統一編號": str, '資本額': str, "設立日期": str, "行業代號": str
     , "行業代號1": str, "行業代號2": str, "行業代號3": str}
-
     pd_bgmopen = pd.read_csv("uploads/BGMOPEN1.csv", usecols=usecols, dtype=data_type)
-
     pd_bgmopen.columns = ['uniid', 'top_uniid', 'business_entity', 'capital', 'establishment_date', 'company_type',
         'industrial_classification', 'industrial_name', 'industrial_classification_1', 'industrial_name_1', 'industrial_classification_2', 'industrial_name_2',
         'industrial_classification_3', 'industrial_name_3']
-
     char_substitute = {
         b'\xf0\xa3\x87\x93' : '鼎',
         b'\xf0\xa7\x99\x97' : '佑',
         b'\xf0\xa5\xb4\x8a' : '𥴊'
     }
-
     for i in range(0,16):
         if i == 15:
             df = pd_bgmopen.iloc[100000*i : ]
         else:
             df = pd_bgmopen.iloc[1+100000*i : 100000*(1+i)]
-        
         print(f'Data:  ',(1+100000*i) , '-', (100000*(1+i)))
         Weblogger.info(f'Data:  ',(1+100000*i) , '-', (100000*(1+i)))
-
         drop_indices = []
-        
         for index, row in df.iterrows():
             if row['company_type'] in ['獨資', '合夥', '其他', '合作社']:
                 drop_indices.append(index)
@@ -139,9 +122,14 @@ def bgmopen_operator():
             return False
         else:
             Weblogger.info(f'Insert db  Successfully.')
-
     return False
 
+@app.route("/upstream_downstream", methods=['GET', 'POST'])
+def upstream_downstream():
+    if request.method == 'POST':
+        pass
+    industry_model.Industry
+    return render_template("upstream_downstream.html")
     
 
     
@@ -287,10 +275,10 @@ def handle_postback(event):
     if action == 'addFavorite':
         id = param[1]
         
-        favorite_stocks = User_favorite_stock.find_by_userid(user_id)
+        favorite_stocks = user_favorite_stock_model.User_favorite_stock.find_by_userid(user_id)
 
         if favorite_stocks is False or favorite_stocks is None: # 首次新增自選股
-            favorite_stocks = User_favorite_stock(user_userid=user_id, stock_ids='')
+            favorite_stocks = user_favorite_stock_model.User_favorite_stock(user_userid=user_id, stock_ids='')
             db.session.add(favorite_stocks)
             try:
                 db.session.commit()
@@ -317,7 +305,7 @@ def handle_postback(event):
     ##### 3.2 移出自選股
     if action == 'delFavorite':
         id = param[1]
-        favorite_stocks = User_favorite_stock.find_by_userid(user_id)
+        favorite_stocks = user_favorite_stock_model.User_favorite_stock.find_by_userid(user_id)
         favorite_stocks_list = favorite_stocks.stock_ids.split(",")
         favorite_stocks_list.remove(str(id))
         favorite_stocks.stock_ids = ",".join(favorite_stocks_list)
@@ -334,7 +322,7 @@ def handle_postback(event):
 
     ##### 3.3 檢視自選股
     if action == 'viewFavorite':
-        favorite_stocks = User_favorite_stock.find_by_userid(user_id)
+        favorite_stocks = user_favorite_stock_model.User_favorite_stock.find_by_userid(user_id)
         favorite_output(user_id, reply_token, favorite_stocks) # 輸出
 
 
@@ -392,7 +380,7 @@ def search_output(user_id, reply_token, uniid, company):
 
 
     added_already = False
-    favorite_stocks = User_favorite_stock.find_by_userid(user_id)
+    favorite_stocks = user_favorite_stock_model.User_favorite_stock.find_by_userid(user_id)
     if favorite_stocks is not None and favorite_stocks is not False:
         if favorite_stocks.stock_ids.find(str(id)) >= 0:
             added_already = True
@@ -401,7 +389,7 @@ def search_output(user_id, reply_token, uniid, company):
     # 2 股市資料
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
 
-    stock_data = Dataset_day.find_by_name(stock_name) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
+    stock_data = dataset_day_model.Dataset_day.find_by_name(stock_name) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
 
     if stock_data is None: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
         # print("\n\n", FlexMessage['body']['contents'], "\n\n")
@@ -466,12 +454,12 @@ def search_output(user_id, reply_token, uniid, company):
     NewsBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][2]) # 取出新聞BOX當模板
     NewsFlexMessage["body"]["contents"] = NewsFlexMessage["body"]["contents"][:1] # 移除年份、新聞BOX，現在只剩公司名稱BOX
     
-    check = Stock_news.today_update_check(stock_code, stock_name)
+    check = stock_news_model.Stock_news.today_update_check(stock_code, stock_name)
     if check is None or len(check) < 1:
         line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
         parse_cnyesNews(stock_code, stock_name) # 爬蟲
 
-    StockNews = Stock_news.today_update_check(stock_code, stock_name)
+    StockNews = stock_news_model.Stock_news.today_update_check(stock_code, stock_name)
 
     if StockNews is None or len(StockNews) < 1:
         NewsFlexMessage["body"]["contents"][0]["text"] = stock_name + " - 新聞"
@@ -598,5 +586,5 @@ if __name__ == "__main__":
     
     _thread.start_new_thread(crawler, (target_time[0], target_time[1], db, debug, app))
     port = int(os.environ.get('PORT', config.port))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
     
