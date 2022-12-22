@@ -9,93 +9,102 @@
         <div class="col-9">
             <div class="mt-5">
                 <form action="upstream_downstream" method="post" id="edit_upstream_downstream">
-                    <label for="formFile" class="form-label"><h3>產業上下游　共 {{ len }} 筆</h3></label>
-                    <table data-toggle="table" data-sort-class="table-active">
-                        <thead>
-                            <tr>
-                                <th data-field="id">上游2</th>
-                                <th>上游1</th>
-                                <th data-sortable="true">產業</th>
-                                <th>下游1</th>
-                                <th>下游2</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for industry in industries %}
-                            <tr>
-                                <td>
-                                    <select class="form-select" aria-label="upstream 1 select option" name="upstream_1">
-                                        {% if industry.upstream_1 is none or industry.upstream_1 == '' %}
-                                        <option selected value=""></option>
-                                            {% for industry_select in industries %}
-                                            <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% else %}
-                                            {% for industry_select in industries %}
-                                                {% if industry.upstream_1 == industry_select.code %}
-                                                <option selected>{{ industry_select.name }}</option>
-                                                {% endif %}
-                                                <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </select>
-                                </td>
-                                <td>
-                                    <select class="form-select" aria-label="upstream 2 select option" name="upstream_2">
-                                        {% if industry.upstream_2 is none or industry.upstream_2 == '' %}
-                                        <option selected value=""></option>
-                                            {% for industry_select in industries %}
-                                            <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% else %}
-                                            {% for industry_select in industries %}
-                                                {% if industry.upstream_2 == industry_select.code %}
-                                                <option selected>{{ industry_select.name }}</option>
-                                                {% endif %}
-                                                <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </select>
-                                </td>
-                                <td>{{ industry.name }}</td>
-                                <td>
-                                    <select class="form-select" aria-label="downstream 1 select option" name="downstream_1">
-                                        {% if industry.downstream_1 is none or industry.downstream_1 == '' %}
-                                        <option selected value=""></option>
-                                            {% for industry_select in industries %}
-                                            <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% else %}
-                                            {% for industry_select in industries %}
-                                                {% if industry.downstream_1 == industry_select.code %}
-                                                <option selected>{{ industry_select.name }}</option>
-                                                {% endif %}
-                                                <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </select>
-                                </td>
-                                <td>
-                                    <select class="form-select" aria-label="downstream 2 select option" name="downstream_2">
-                                        {% if industry.downstream_2 is none or industry.downstream_2 == '' %}
-                                        <option selected value=""></option>
-                                            {% for industry_select in industries %}
-                                            <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% else %}
-                                            {% for industry_select in industries %}
-                                                {% if industry.downstream_2 == industry_select.code %}
-                                                <option selected>{{ industry_select.name }}</option>
-                                                {% endif %}
-                                                <option value="{{ industry.id }}_{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </select>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    
+                    <div class="form-group mb-2 w-25">
+                        <label for="formFile" class="form-label"><h3>產業上下游　共 {{ len }} 筆</h3></label>
+                        <input class="form-control" type="text" name="keyword" placeholder="搜尋關鍵字" value="{{ request.form['keyword'] }}">
+                    </div>
+
+                    <div class="form-group">
+                        <table data-toggle="table" data-sort-class="table-active">
+                            <thead>
+                                <tr>
+                                    <th data-field="id">上游2</th>
+                                    <th>上游1</th>
+                                    <th data-sortable="true">產業</th>
+                                    <th>下游1</th>
+                                    <th>下游2</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for industry in industries %}
+                                <tr>
+                                    <td>
+                                        <select class="form-select" aria-label="upstream 1 select option" name="{{ industry.id }}_upstream_1">
+                                            {% if industry.upstream_1 is none or industry.upstream_1 == '' %}
+                                            <option selected value=""></option>
+                                                {% for industry_select in industries_all %}
+                                                <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for industry_select in industries_all %}
+                                                    {% if industry.upstream_1 == industry_select.code %}
+                                                    <option selected value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                    {% endif %}
+                                                    <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select" aria-label="upstream 2 select option" name="{{ industry.id }}_upstream_2">
+                                            {% if industry.upstream_2 is none or industry.upstream_2 == '' %}
+                                            <option selected value=""></option>
+                                                {% for industry_select in industries_all %}
+                                                <option value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for industry_select in industries_all %}
+                                                    {% if industry.upstream_2 == industry_select.code %}
+                                                    <option selected value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                    {% endif %}
+                                                    <option value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                    <td>{{ industry.name }}</td>
+                                    <td>
+                                        <select class="form-select" aria-label="downstream 1 select option" name="{{ industry.id }}_downstream_1">
+                                            {% if industry.downstream_1 is none or industry.downstream_1 == '' %}
+                                            <option selected value=""></option>
+                                                {% for industry_select in industries_all %}
+                                                <option value="{{ industry.id }}-downstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for industry_select in industries_all %}
+                                                    {% if industry.downstream_1 == industry_select.code %}
+                                                    <option selected value="{{ industry.id }}-downstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                    {% endif %}
+                                                    <option value="{{ industry.id }}-downstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select" aria-label="downstream 2 select option" name="{{ industry.id }}_downstream_2">
+                                            {% if industry.downstream_2 is none or industry.downstream_2 == '' %}
+                                            <option selected value=""></option>
+                                                {% for industry_select in industries_all %}
+                                                <option value="{{ industry.id }}-downstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for industry_select in industries_all %}
+                                                    {% if industry.downstream_2 == industry_select.code %}
+                                                    <option selected value="{{ industry.id }}-downstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                    {% endif %}
+                                                    <option value="{{ industry.id }}-downstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    
                 </form>
             </div>        
         </div>
