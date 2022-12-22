@@ -126,10 +126,40 @@ def bgmopen_operator():
 
 @app.route("/upstream_downstream", methods=['GET', 'POST'])
 def upstream_downstream():
-    if request.method == 'POST':
-        pass
-    industry_model.Industry
+    
+    if request.method == 'POST' and request.form.get('keyword') != '':
+        industries_all = industry_model.Industry.query.all()
+        keyword = request.form.get('keyword')
+        industries = industry_model.Industry.get_by_name(keyword=keyword)
+        updates = []
+        for industry in industries:
+            upstream_1   = request.form.get(f'{industry.id}_upstream_1')
+            upstream_2   = request.form.get(f'{industry.id}_upstream_2')
+            downstream_1 = request.form.get(f'{industry.id}_downstream_1')
+            downstream_2 = request.form.get(f'{industry.id}_downstream_2')
+
+            if upstream_1:
+                updates.append(upstream_1)
+            if upstream_2:
+                updates.append(upstream_2)
+            if downstream_1:
+                updates.append(downstream_1)
+            if downstream_2:
+                updates.append(downstream_2)
+
+        for row in updates:
+            id, stream, stream_id = row.split("-")
+            industry_model.Industry.update_stream(id, stream, stream_id)
+            
+        return render_template("upstream_downstream.html", industries=industries, industries_all=industries_all, len=len(industries))
+        
     return render_template("upstream_downstream.html")
+
+@app.route("/get_industries", methods=['GET'])
+def get_industries():
+    industries = industry_model.Industry.query.limit(100).all()
+    json_industries = json.dumps(industries)
+    return json_industries
     
 
     
