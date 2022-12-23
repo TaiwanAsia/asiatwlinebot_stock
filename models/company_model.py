@@ -10,6 +10,8 @@ class Company(db.Model):
     capital            = db.Column(db.Integer, nullable=False)
     establishment_date = db.Column(db.String, nullable=False)
     company_type       = db.Column(db.String, nullable=False)
+    industrial_classification   = db.Column(db.String, nullable=False)
+    industrial_name    = db.Column(db.String, nullable=False)
     industrial_classification_1 = db.Column(db.String, nullable=False)
     industrial_name_1  = db.Column(db.String, nullable=False)
     industrial_classification_2 = db.Column(db.String, nullable=True)
@@ -18,7 +20,7 @@ class Company(db.Model):
     industrial_name_3  = db.Column(db.String, nullable=True)
 
     def __repr__(self):
-        return '<Company %r  %r %r %r>' % (self.business_entity, self.uniid, self.company_type, self.industrial_name_1)
+        return '<Company %r  %r %r %r>' % (self.business_entity, self.uniid, self.company_type, self.industrial_name)
 
 
     def find_by_uniid(uniid):
@@ -26,3 +28,6 @@ class Company(db.Model):
 
     def find_by_entity(business_entity):
         return Company.query.filter_by(business_entity=business_entity).first()
+
+    def find_by_industry(industrial_classification):
+        return Company.query.filter_by(industrial_classification=industrial_classification).all()

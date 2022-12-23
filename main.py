@@ -128,9 +128,11 @@ def bgmopen_operator():
 def upstream_downstream():
     
     if request.method == 'POST' and request.form.get('keyword') != '':
-        industries_all = industry_model.Industry.query.all()
         keyword = request.form.get('keyword')
-        industries = industry_model.Industry.get_by_name(keyword=keyword)
+        sql = 'SELECT * FROM `industry` ORDER BY CONVERT(`name` using big5) ASC'.format("%%" + keyword + "%%")
+        industries_all = db.engine.execute(sql).fetchall()
+        sql = 'SELECT * FROM `industry` WHERE `name` LIKE "{0}" ORDER BY CONVERT(`name` using big5) ASC'.format("%%" + keyword + "%%")
+        industries = db.engine.execute(sql).fetchall()
         updates = []
         for industry in industries:
             upstream_1   = request.form.get(f'{industry.id}_upstream_1')
@@ -355,6 +357,19 @@ def handle_postback(event):
         favorite_stocks = user_favorite_stock_model.User_favorite_stock.find_by_userid(user_id)
         favorite_output(user_id, reply_token, favorite_stocks) # 輸出
 
+    ##### 4.1 檢視產業鏈其他公司
+    if action == 'industry_stream':
+        code = param[1]
+        industry = industry_model.Industry.get_by_code(code)
+        results = company_model.Company.find_by_industry(code)
+        output_companies = []
+        # 優先找 1.未上市 2.有股價
+        for result in results:
+            company = dataset_day_model.Dataset_day.find_by_name_accurater(result.business_entity)
+            if company:
+                output_companies.append(company)
+        multiple_result_output_2(reply_token, industry.name, output_companies)
+            
 
 
 ######### 以下放多次使用的 def #########
@@ -368,7 +383,7 @@ def search_output(user_id, reply_token, uniid, company):
     print(f"\n ------------ 輸出公司查詢結果 : {company.stock_name}------------")
 
     if company is None:
-        line_bot_api.reply_message(reply_token, TextSendMessage(text="是不是打錯了，找不到資料。"))
+        line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
         return
 
     id = company.id
@@ -421,7 +436,7 @@ def search_output(user_id, reply_token, uniid, company):
 
     stock_data = dataset_day_model.Dataset_day.find_by_name(stock_name) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
 
-    if stock_data is None: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
+    if stock_data is False: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
         # print("\n\n", FlexMessage['body']['contents'], "\n\n")
         BoxTop = TradeinfoFlexMessage['body']['contents'][0]
         BoxTop['contents'][0]['text'] = stock_name
@@ -473,7 +488,14 @@ def search_output(user_id, reply_token, uniid, company):
             TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{id}" # 加入自選股
             print(TradeinfoFlexMessage["body"]["contents"][3]["action"])
 
-    
+    #
+    # 產業鏈
+    c = company_model.Company.find_by_uniid(uniid)
+    industry = industry_model.Industry.get_by_code(c.industrial_classification)
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data'] += f"&{industry.upstream_1}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data'] += f"&{industry.code}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data'] += f"&{industry.downstream_1}"
+
         
     CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
 
@@ -546,8 +568,8 @@ def favorite_output(userid, reply_token, data):
     
 
 
-#### TODO 
-def multiple_result_output(user_id, reply_token, keyword, companies):
+#### 複數公司選擇版面 TODO: 棄用stock物件，改為使用company物件
+def multiple_result_output(reply_token, keyword, companies): # companies是Stock物件
 
     # 載入Flex template
     FlexMessage = json.load(open('templates/template.json','r',encoding='utf-8'))
@@ -592,6 +614,46 @@ def multiple_result_output(user_id, reply_token, keyword, companies):
     FlexMessage['contents'][0]['body']['contents'] = candidates_list
 
     line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
+
+
+#### 複數公司選擇版面 
+def multiple_result_output_2(reply_token, keyword, companies): # 參數companies使用company物件
+
+    # 載入Flex template
+    FlexMessage = json.load(open('templates/template.json','r',encoding='utf-8'))
+    FlexMessage['contents'][0]['header']['contents'][0]['text'] = keyword
+    candidates_list = []
+
+    print("\n\n multiple_result_output_2: ")
+    for company in companies:
+        print(company)
+        cand =  {
+            "type": "button",
+            "action": {
+                "type": "postback",
+                "label": f"{company.company_name}",
+                "data": f"stock&{company.id}"
+            }
+        }
+        candidates_list.append(cand)
+
+    if len(companies) > 10:
+        cand =  {
+            "type": "text",
+            "text": f"共有{len(companies)}筆，建議搜尋精準關鍵字",
+            "color": "#aaaaaa",
+            "size": "md",
+            "weight": "bold",
+            "style": "italic",
+            "decoration": "underline",
+            "align": "center"
+        }
+        candidates_list.append(cand)
+
+    FlexMessage['contents'][0]['body']['contents'] = candidates_list
+
+    line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
+
 
 
 

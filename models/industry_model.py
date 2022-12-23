@@ -19,7 +19,7 @@ class Industry(db.Model):
     def get_by_code(code):
         return Industry.query.filter_by(code=code).first()
 
-    def get_by_name(keyword):
+    def get_by_name_like(keyword):
         name_filter = Industry.name.like('%{}%'.format(keyword))
         query = Industry.query.filter(name_filter)
         return query.all()

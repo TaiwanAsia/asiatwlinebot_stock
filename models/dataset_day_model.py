@@ -46,9 +46,15 @@ class Dataset_day(db.Model):
 
     def find_by_name(name):
         count = Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:2])), Dataset_day.website_id==1).count()
-        if count > 1:
-            return count
+        if count < 1:
+            return False
         return Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:2])), Dataset_day.website_id==1).first()
+
+    def find_by_name_accurater(name): # 模糊搜尋4個字
+        result = Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:4])), Dataset_day.website_id==1).first()
+        if result is None:
+            return False
+        return result
 
     def __repr__(self):
         return '<Dataset_day %r buy_amount: %r buy_average:%r sell_amount:%r sell_average:%r>' % (self.company_name, self.buy_amount, self.buy_average, self.sell_amount, self.sell_average)
