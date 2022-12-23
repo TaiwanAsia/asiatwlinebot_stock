@@ -30,23 +30,6 @@
                                 {% for industry in industries %}
                                 <tr>
                                     <td>
-                                        <select class="form-select" aria-label="upstream 1 select option" name="{{ industry.id }}_upstream_1">
-                                            {% if industry.upstream_1 is none or industry.upstream_1 == '' %}
-                                            <option selected value=""></option>
-                                                {% for industry_select in industries_all %}
-                                                <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                {% endfor %}
-                                            {% else %}
-                                                {% for industry_select in industries_all %}
-                                                    {% if industry.upstream_1 == industry_select.code %}
-                                                    <option selected value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                    {% endif %}
-                                                    <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </select>
-                                    </td>
-                                    <td>
                                         <select class="form-select" aria-label="upstream 2 select option" name="{{ industry.id }}_upstream_2">
                                             {% if industry.upstream_2 is none or industry.upstream_2 == '' %}
                                             <option selected value=""></option>
@@ -59,6 +42,23 @@
                                                     <option selected value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
                                                     {% endif %}
                                                     <option value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select" aria-label="upstream 1 select option" name="{{ industry.id }}_upstream_1">
+                                            {% if industry.upstream_1 is none or industry.upstream_1 == '' %}
+                                            <option selected value=""></option>
+                                                {% for industry_select in industries_all %}
+                                                <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for industry_select in industries_all %}
+                                                    {% if industry.upstream_1 == industry_select.code %}
+                                                    <option selected value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                    {% endif %}
+                                                    <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
                                                 {% endfor %}
                                             {% endif %}
                                         </select>

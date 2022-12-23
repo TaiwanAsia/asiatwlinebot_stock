@@ -342,8 +342,63 @@
         "style": "primary",
         "height": "sm",
         "offsetTop": "xxl",
-        "offsetBottom": "xxl",
-        "color": "#6b8dfa"
+        "color": "#6b8dfa",
+        "offsetBottom": "sm"
+      }
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "相關公司",
+        "size": "xl",
+        "weight": "bold"
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
+              "label": "上游",
+              "data": "industry_stream",
+              "displayText": "產業上游"
+            },
+            "height": "sm"
+          },
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
+              "label": "同業",
+              "data": "industry_stream",
+              "displayText": "產業同業"
+            },
+            "height": "sm"
+          },
+          {
+            "type": "button",
+            "action": {
+              "type": "postback",
+              "label": "下游",
+              "data": "industry_stream",
+              "displayText": "產業下游"
+            },
+            "height": "sm"
+          }
+        ],
+        "action": {
+          "type": "postback",
+          "data": "hello"
+        }
       }
     ]
   }
