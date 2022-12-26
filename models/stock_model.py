@@ -1,6 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from .shared_db_model import db
 
+#
+# 棄用
+# 改用 company_model
+#
+
 class Stock(db.Model):
     __tablename__ = 'stock'
 

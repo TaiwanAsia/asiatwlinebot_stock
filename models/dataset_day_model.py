@@ -44,17 +44,12 @@ class Dataset_day(db.Model):
         self.date = date
         self.updated_at = updated_at
 
-    def find_by_name(name):
-        count = Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:2])), Dataset_day.website_id==1).count()
-        if count < 1:
-            return False
-        return Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:2])), Dataset_day.website_id==1).first()
-
-    def find_by_name_accurater(name): # 模糊搜尋4個字
-        result = Dataset_day.query.filter(Dataset_day.company_name.like('%{}%'.format(name[:4])), Dataset_day.website_id==1).first()
-        if result is None:
-            return False
-        return result
+    def find_by_company_name_like_search(company_name, keyword_length = 3): # 模糊搜尋 預設前3個字
+        filter = Dataset_day.company_name.like('%{}%'.format(company_name[ : keyword_length]))
+        query  = Dataset_day.query.filter(filter).first()
+        if query is None: # 如無資料，則改用keyword前2個字做模糊搜尋
+            filter = Dataset_day.company_name.like('%{}%'.format(company_name[ : 2]))
+        return Dataset_day.query.filter(filter).first()
 
     def __repr__(self):
         return '<Dataset_day %r buy_amount: %r buy_average:%r sell_amount:%r sell_average:%r>' % (self.company_name, self.buy_amount, self.buy_average, self.sell_amount, self.sell_average)
