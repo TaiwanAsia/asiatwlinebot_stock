@@ -77,16 +77,6 @@
             }
           },
           {
-            "type": "button",
-            "style": "link",
-            "height": "sm",
-            "action": {
-              "type": "uri",
-              "label": "產業價值鏈",
-              "uri": "https://ic.tpex.org.tw/company_chain.php?stk_code="
-            }
-          },
-          {
             "type": "image",
             "url": "https://i.imgur.com/vKyWusd.png",
             "aspectRatio": "2:1",

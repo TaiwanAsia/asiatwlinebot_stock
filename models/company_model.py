@@ -22,12 +22,26 @@ class Company(db.Model):
     def __repr__(self):
         return '<Company %r  %r %r %r>' % (self.business_entity, self.uniid, self.company_type, self.industrial_name)
 
+    def find_by_id(id):
+        return Company.query.filter_by(id=id).first()
+
+    def find_by_ids(ids):
+        ids = ids.split(",")
+        return Company.query.filter(Company.id.in_(ids)).all()
 
     def find_by_uniid(uniid):
         return Company.query.filter_by(uniid=uniid).first()
 
-    def find_by_entity(business_entity):
+    def find_by_business_entity(business_entity):
         return Company.query.filter_by(business_entity=business_entity).first()
 
     def find_by_industry(industrial_classification):
         return Company.query.filter_by(industrial_classification=industrial_classification).all()
+
+    def find_by_business_entity_like_search(business_entity, keyword_length = 3): # 模糊搜尋
+        filter = Company.business_entity.like('%{}%'.format(business_entity[ : keyword_length]))
+        query  = Company.query.filter(filter)
+        if query.count() < 1: # 如無資料，則改用keyword前2個字做模糊搜尋
+            filter = Company.business_entity.like('%{}%'.format(business_entity[ : 2])) 
+            query  = Company.query.filter(filter)
+        return query.all()

@@ -1,5 +1,10 @@
 from .shared_db_model import db
 
+### 資料來源:
+#
+#   https://rank.twincn.com/c.aspx
+#   行業代號.csv
+#   用Toad匯入 https://softfamous.com/toad-for-mysql/
 
 class Industry(db.Model):
     __tablename__ = 'industry'

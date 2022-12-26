@@ -6,6 +6,7 @@ from models.dataset_day_model import Dataset_day
 from models.stock_model import Stock
 
 from models.stock_news_model import Stock_news
+from models.company_news_model import Company_news
 from models.shared_db_model import db
 from api import get_uniid_by_name
 from common.logging import setup_logging
@@ -311,10 +312,10 @@ def parse_company_fullname(db, app):
 
 # 鉅亨網
 #######################################  鉅亨網新聞  #######################################
-def parse_cnyesNews(stock_code, company_name):
+def parse_cnyesNews(company_id, company_business_entity):
 
-    print(f"\n ------------ 爬蟲開始: 鉅亨網 {stock_code} {company_name} ------------")
-    logger.info(f"------------ 爬蟲開始: 鉅亨網 {stock_code} {company_name} ------------")
+    print(f"\n ------------ 爬蟲開始: 鉅亨網 {company_id} {company_business_entity} ------------")
+    logger.info(f"------------ 爬蟲開始: 鉅亨網 {company_id} {company_business_entity} ------------")
 
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
@@ -337,7 +338,7 @@ def parse_cnyesNews(stock_code, company_name):
         return
     browser.maximize_window()
     # url = f'https://www.cnyes.com/search/news?keyword={company_name}' # 另一個頁面，也可撈
-    url = f'https://news.cnyes.com/search?q={company_name}' # 取得網頁內容
+    url = f'https://news.cnyes.com/search?q={company_business_entity[:2]}' # 取得網頁內容
     url = quote(url, safe=string.printable)
     browser.get(url)
     time.sleep(2)
@@ -360,13 +361,13 @@ def parse_cnyesNews(stock_code, company_name):
             if title and href and dt:
                 title = title.replace("<mark>","")
                 title = title.replace("</mark>","")
-                if len(stock_code) < 1:
-                    stock_code = company_name
-                list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title=title, stock_news_url=href, stock_news_date=dt))
+                # if len(stock_code) < 1:
+                    # stock_code = company_name
+                list_added.append(Company_news(company_id=company_id, company_business_entity=company_business_entity, news_title=title, news_url=href, news_date=dt))
 
     if len(articles) < 1: # 該股無新聞則插入空資料
         print("\n插入空資料")
-        list_added.append(Stock_news(stock_code=stock_code, stock_name=company_name, stock_news_title='', stock_news_url='', stock_news_date='1980-01-01'))
+        list_added.append(Company_news(company_id=company_id, company_business_entity=company_business_entity, news_title='', news_url='', news_date='1980-01-01'))
 
     try:
         db.session.add_all(list_added)
@@ -375,4 +376,4 @@ def parse_cnyesNews(stock_code, company_name):
         db.session.rollback()
         logger.error('Insert table `Stock_news` Failed. ' + e)
 
-    print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_name} ------------")
+    print(f"\n ------------ 爬蟲結束: 鉅亨網 {company_business_entity} ------------")
