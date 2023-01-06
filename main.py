@@ -659,7 +659,7 @@ if __name__ == "__main__":
             debug = sys.argv[1]
 
     # 爬蟲執行時間
-    target_time = [11, 37]
+    target_time = [13, 30]
     
     _thread.start_new_thread(crawler, (target_time[0], target_time[1], db, debug, app))
     port = int(os.environ.get('PORT', config.port))

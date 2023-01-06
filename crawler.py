@@ -258,7 +258,8 @@ def parse_company_fullname(db, app):
             try:
                 json_obj = json.loads(text)
             except Exception as e:
-                logger.error(f'JSON error: ' + e)
+                logger.error('JSON error: ')
+                logger.error(e)
             print(f" ------------   第{index}批  寫入資料庫   ------------ ")
             for cmp in json_obj['msgArray']:
                 if 'nf' in cmp:
