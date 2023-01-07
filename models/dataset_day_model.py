@@ -47,8 +47,8 @@ class Dataset_day(db.Model):
     def find_by_company_name_like_search(company_name, keyword_length = 3): # 模糊搜尋 預設前3個字
         filter = Dataset_day.company_name.like('%{}%'.format(company_name[ : keyword_length]))
         query  = Dataset_day.query.filter(filter).first()
-        if query is None: # 如無資料，則改用keyword前2個字做模糊搜尋
-            filter = Dataset_day.company_name.like('%{}%'.format(company_name[ : 2]))
+        # if query is None: # 如無資料，則改用keyword前2個字做模糊搜尋
+        #     filter = Dataset_day.company_name.like('%{}%'.format(company_name[ : 2]))
         return Dataset_day.query.filter(filter).first()
 
     def __repr__(self):

@@ -479,9 +479,10 @@ def search_output(user_id, reply_token, company):
     #
     # 產業鏈
     industry = industry_model.Industry.get_by_code(company.industrial_classification)
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data'] += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data'] += f"&{industry.code}"
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data'] += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {industry.name}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{industry.code}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
 
         
     CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
@@ -498,16 +499,16 @@ def search_output(user_id, reply_token, company):
         line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
         parse_cnyesNews(company.id, company.business_entity) # 爬蟲
 
-    StockNews = company_news_model.Company_news.today_update_check_by_company_id(company.id)
+    company_news = company_news_model.Company_news.today_update_check_by_company_id(company.id)
 
-    if StockNews is None or len(StockNews) < 1:
-        NewsFlexMessage["body"]["contents"][0]["text"] = company.business_entity + " - 新聞"
+    if company_news is None or len(company_news) < 1:
+        NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
     else:
-        if len(StockNews[0].news_title) > 0:
-            NewsFlexMessage["body"]["contents"][0]["text"] = company.business_entity + " - 新聞"
+        if len(company_news[0].news_title) > 0:
+            NewsFlexMessage["body"]["contents"][0]["text"] = company_news.keyword + " - 新聞"
             NewsByYear = {}
             ContentBox = [] # 年份&新聞BOX
-            for news in StockNews:
+            for news in company_news:
                 year = news.news_date.split("-")[0]
                 if year not in NewsByYear:
                     NewsByYear[year] = []
@@ -524,7 +525,7 @@ def search_output(user_id, reply_token, company):
                     ContentBox.append(NewsBox) # 再放新聞
             NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
         else:
-            NewsFlexMessage["body"]["contents"][0]["text"] = company.business_entity + " - 新聞"
+            NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
     
     CarouselMessage["contents"].append(NewsFlexMessage) # 放入Carousel
 
@@ -611,16 +612,43 @@ def multiple_result_output_2(reply_token, keyword, companies): # 參數companies
     FlexMessage['contents'][0]['header']['contents'][0]['text'] = keyword
     candidates_list = []
 
-    for i in range(len(companies) if len(companies) <= 15 else 15):
-        cand =  {
-            "type": "button",
-            "action": {
-                "type": "postback",
-                "label": f"{companies[i].business_entity}",
-                "data": f"company&{companies[i].id}"
+    for i in range(len(companies) if len(companies) <= 10 else 10):
+        if len(companies[i].business_entity) >= 10:
+            business_entity_1 = companies[i].business_entity[:10]
+            business_entity_2 = companies[i].business_entity[10:]
+            cand_1 =  {
+                "type": "button",
+                "action": {
+                    "type": "postback",
+                    "label": f"{business_entity_1}",
+                    "data": f"company&{companies[i].id}"
+                }
             }
-        }
-        candidates_list.append(cand)
+            candidates_list.append(cand_1)
+            if len(business_entity_2) > 0:
+                cand_2 =  {
+                    "type": "button",
+                    "action": {
+                        "type": "postback",
+                        "label": f"{business_entity_2}",
+                        "data": f"company&{companies[i].id}"
+                    }
+                }
+                seperator = {
+                    "type": "separator"
+                }
+                candidates_list.append(cand_2)
+                candidates_list.append(seperator)
+        else:
+            cand =  {
+                "type": "button",
+                "action": {
+                    "type": "postback",
+                    "label": f"{companies[i].business_entity}",
+                    "data": f"company&{companies[i].id}"
+                }
+            }
+            candidates_list.append(cand)
 
     if len(companies) > 10:
         cand =  {

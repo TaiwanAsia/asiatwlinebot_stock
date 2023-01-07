@@ -339,7 +339,20 @@ def parse_cnyesNews(company_id, company_business_entity):
         return
     browser.maximize_window()
     # url = f'https://www.cnyes.com/search/news?keyword={company_name}' # 另一個頁面，也可撈
-    url = f'https://news.cnyes.com/search?q={company_business_entity[:2]}' # 取得網頁內容
+    replace_string = ['股份', '有限', '公司']
+    for s in replace_string:
+        company_name = company_business_entity.replace(s, "")
+    if len(company_name) > 3:
+        keyword = company_name[:4]
+    elif len(company_name) == 3:
+        keyword = company_name[:3]
+    else:
+        keyword = company_name[:2]
+
+    print(f" ------------ 爬蟲開始: 關鍵字: {keyword} ------------")
+    logger.info(f"------------ 爬蟲開始: 關鍵字: {keyword} ------------")
+
+    url = f'https://news.cnyes.com/search?q={keyword}' # 取得網頁內容
     url = quote(url, safe=string.printable)
     browser.get(url)
     time.sleep(2)
@@ -364,11 +377,11 @@ def parse_cnyesNews(company_id, company_business_entity):
                 title = title.replace("</mark>","")
                 # if len(stock_code) < 1:
                     # stock_code = company_name
-                list_added.append(Company_news(company_id=company_id, company_business_entity=company_business_entity, news_title=title, news_url=href, news_date=dt))
+                list_added.append(Company_news(company_id=company_id, company_business_entity=company_business_entity, keyword=keyword, news_title=title, news_url=href, news_date=dt))
 
     if len(articles) < 1: # 該股無新聞則插入空資料
         print("\n插入空資料")
-        list_added.append(Company_news(company_id=company_id, company_business_entity=company_business_entity, news_title='', news_url='', news_date='1980-01-01'))
+        list_added.append(Company_news(company_id=company_id, company_business_entity=company_business_entity, keyword=keyword, news_title='', news_url='', news_date='1980-01-01'))
 
     try:
         db.session.add_all(list_added)
