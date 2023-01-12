@@ -410,10 +410,8 @@ def search_output(user_id, reply_token, company):
     # 2 股市資料
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
 
-    company_stock_info = dataset_day_model.Dataset_day.find_by_company_name_like_search(company.business_entity) # 目前取關鍵字前2個字去做模糊搜尋，結果有可能不只一筆 例: 前兩字為台灣，在此只取一筆 TODO: 1.回傳不同網站數字統計後結果。 2.多筆的話應 return emplates/template.json。
-
-    if company_stock_info is None: # Dataset_day 沒資料的情況: 1.不在100熱門  2.沒這檔股票
-        # print("\n\n", FlexMessage['body']['contents'], "\n\n")
+    company_stock_info = dataset_day_model.Dataset_day.find_by_company_name_like_search(company.business_entity)
+    if len(company_stock_info) < 1:
         BoxTop = TradeinfoFlexMessage['body']['contents'][0]
         BoxTop['contents'][0]['text'] = company.business_entity
         notFound = {
@@ -427,34 +425,8 @@ def search_output(user_id, reply_token, company):
         TradeinfoFlexMessage['body']['contents'].pop(4)
         TradeinfoFlexMessage['body']['contents'].pop(3)
         TradeinfoFlexMessage['body']['contents'].pop(1)
-    
-    else:
-        # if company_type == 1: # 未上市
-        #     BoxTop = TradeinfoFlexMessage['body']['contents'][0]
-        #     BoxTop['contents'][0]['text'] = company_name
-        #     Target_buy  = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
-        #     Target_sell = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][1]
-        #     Target_buy['contents'][0]['text'] = company_data.buy_amount # 目前只使用必富網資料
-        #     Target_buy['contents'][2]['text'] = company_data.buy_average
-        #     Target_sell['contents'][0]['text'] = company_data.sell_amount # 目前只使用必富網資料
-        #     Target_sell['contents'][2]['text'] = company_data.sell_average
-        #     WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
-        #     WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company_name[:4]}&{company_type}"
-        #     WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
-        #     WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company_name[:4]}&{company_type}"
-            
-
-        # # TODO: 爬上市股價
-        # elif company_type == 2: # 上市
-        #     BoxTop = TradeinfoFlexMessage['body']['contents'][0]
-        #     BoxTop['contents'][0]['text'] = company_full_name
-        #     WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
-        #     WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
-        #     WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
-        #     WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company_name[:4]}&{company_type}"
-        #     WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
-        #     WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company_name[:4]}&{company_type}"
-
+    elif len(company_stock_info) == 1:
+        company_stock_info = company_stock_info[0]
         BoxTop = TradeinfoFlexMessage['body']['contents'][0]
         BoxTop['contents'][0]['text'] = company.business_entity
         Target_buy  = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
@@ -467,27 +439,50 @@ def search_output(user_id, reply_token, company):
         WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company.business_entity[:4]}"
         WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
         WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company.business_entity[:4]}"
-        
-        # TradeinfoFlexMessage["body"]["contents"][4]["action"]["data"] += f"&{id}" # 檢視自選股
-    
         if added_already:
             TradeinfoFlexMessage["body"]["contents"][3]["action"]["label"] = "移出自選股"
             TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"]  = f"delFavorite&{company.id}" # 取消自選股
         else:
             TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{company.id}" # 加入自選股
-
-    #
-    # 產業鏈
-    industry = industry_model.Industry.get_by_code(company.industrial_classification)
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {industry.name}"
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{industry.code}"
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
-
+        # 產業鏈
+        industry = industry_model.Industry.get_by_code(company.industrial_classification)
+        TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
+        TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {industry.name}"
+        TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{industry.code}"
+        TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
+    else:
+        TradeinfoFlexMessage = json.load(open('templates/choosing.json','r',encoding='utf-8'))
+        candidates_list = []
+        title = {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {
+                    "type": "text",
+                    "text": "股價",
+                    "size": "xxl",
+                    "weight": "bold",
+                    "align": "center"
+                }
+            ]
+        } 
+        candidates_list.append(title)
+        for company_stock in company_stock_info:
+            data = {
+                "type": "button",
+                "action": {
+                    "type": "postback",
+                    "label": f"{company_stock.company_name}",
+                    "data": "hello",
+                    "displayText": f"{company_stock.company_name}股價"
+                }
+            }
+            candidates_list.append(data)
+        TradeinfoFlexMessage["body"]["contents"] = candidates_list
         
     CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
 
-    #
+    
     # 3 新聞
     NewsFlexMessage = json.load(open("templates/company_news.json","r",encoding="utf-8"))
     YearBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][1]) # 取出年份BOX當模板
@@ -612,6 +607,12 @@ def multiple_result_output_2(reply_token, keyword, companies): # 參數companies
     FlexMessage['contents'][0]['header']['contents'][0]['text'] = keyword
     candidates_list = []
 
+    for index, company in enumerate(companies):
+        result = dataset_day_model.Dataset_day.find_by_company_name_like_search(company.business_entity)
+        if len(result) > 0:
+            companies.insert(0, company)
+            del companies[index]
+    
     for i in range(len(companies) if len(companies) <= 10 else 10):
         if len(companies[i].business_entity) >= 10:
             business_entity_1 = companies[i].business_entity[:10]
@@ -649,7 +650,6 @@ def multiple_result_output_2(reply_token, keyword, companies): # 參數companies
                 }
             }
             candidates_list.append(cand)
-
     if len(companies) > 10:
         cand =  {
             "type": "text",
@@ -662,9 +662,7 @@ def multiple_result_output_2(reply_token, keyword, companies): # 參數companies
             "align": "center"
         }
         candidates_list.append(cand)
-
     FlexMessage['contents'][0]['body']['contents'] = candidates_list
-
     line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
 
 

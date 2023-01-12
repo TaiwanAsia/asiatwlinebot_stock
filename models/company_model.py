@@ -39,17 +39,14 @@ class Company(db.Model):
     def find_by_industry(industrial_classification):
         return Company.query.filter_by(industrial_classification=industrial_classification).all()
 
-    def find_by_business_entity_like_search(business_entity, keyword_length = 3): # 模糊搜尋
+    def find_by_business_entity_like_search(business_entity):
         # 優先選擇Dataset_day符合的公司
-        cand = Dataset_day.find_by_company_name_like_search(business_entity)
+        cand = Dataset_day.find_by_company_name(business_entity)
         if cand is not None:
             filter = Company.business_entity.like('%{}%'.format(cand.company_name.split('\xa0')[0]))
             query  = Company.query.filter(filter)
         else:
-            filter = Company.business_entity.like('%{}%'.format(business_entity[ : keyword_length])) 
+            filter = Company.business_entity.like('%{}%'.format(business_entity)) 
             query  = Company.query.filter(filter)
-            if query.count() < 1: # 如無資料，則改用keyword前2個字做模糊搜尋
-                filter = Company.business_entity.like('%{}%'.format(business_entity[ : 2])) 
-                query  = Company.query.filter(filter)
             
         return query.all()
