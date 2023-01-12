@@ -44,12 +44,14 @@ class Dataset_day(db.Model):
         self.date = date
         self.updated_at = updated_at
 
-    def find_by_company_name_like_search(company_name, keyword_length = 3): # 模糊搜尋 預設前3個字
-        filter = Dataset_day.company_name.like('%{}%'.format(company_name[ : keyword_length]))
-        query  = Dataset_day.query.filter(filter).first()
-        # if query is None: # 如無資料，則改用keyword前2個字做模糊搜尋
-        #     filter = Dataset_day.company_name.like('%{}%'.format(company_name[ : 2]))
-        return Dataset_day.query.filter(filter).first()
+    def find_by_company_name(company_name):
+        keyword = company_name.split("股份")[0]
+        return Dataset_day.query.filter_by(company_name=keyword).first()
+
+    def find_by_company_name_like_search(company_name, keyword_length = 4): # 模糊搜尋前4個字
+        keyword = company_name.split("股份")[0]
+        filter = Dataset_day.company_name.like('%{}%'.format(keyword[ : keyword_length]))
+        return Dataset_day.query.filter(filter).all()
 
     def __repr__(self):
         return '<Dataset_day %r buy_amount: %r buy_average:%r sell_amount:%r sell_average:%r>' % (self.company_name, self.buy_amount, self.buy_average, self.sell_amount, self.sell_average)

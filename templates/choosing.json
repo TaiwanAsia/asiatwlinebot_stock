@@ -1,0 +1,31 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "股價",
+            "size": "xxl",
+            "weight": "bold",
+            "align": "center"
+          }
+        ]
+      },
+      {
+        "type": "button",
+        "action": {
+          "type": "postback",
+          "label": "太平洋電線電纜",
+          "data": "hello",
+          "displayText": "太平洋電線電纜股價"
+        }
+      }
+    ]
+  }
+}
