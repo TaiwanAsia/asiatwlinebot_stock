@@ -502,7 +502,7 @@ def search_output(user_id, reply_token, company):
     company_news = company_news_model.Company_news.today_update_check_by_company_id(company.id)
 
     if company_news is None or len(company_news) < 1:
-        NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
+        NewsFlexMessage["body"]["contents"][0]["text"] = "新聞"
     else:
         if len(company_news[0].news_title) > 0:
             NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"

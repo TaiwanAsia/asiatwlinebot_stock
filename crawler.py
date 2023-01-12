@@ -361,9 +361,9 @@ def parse_cnyesNews(company_id, company_business_entity):
     browser.get(url)
     time.sleep(2)
     res = browser.page_source
-    # soup = BeautifulSoup(res, features='html.parser')
+    soup = BeautifulSoup(res, features='html.parser')
     # prettyHtml = soup.prettify()
-    soup = BeautifulSoup(res, 'lxml')
+    # soup = BeautifulSoup(res, 'lxml')
     articles = soup.find_all('article')
     list_added = []
     
