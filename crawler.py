@@ -323,7 +323,7 @@ def parse_cnyesNews(company_id, company_business_entity):
     from selenium.webdriver.chrome.options import Options
 
     # ------  Chrome有更新時
-    # 1. 前往https://sites.google.com/chromium.org/driver/downloads?authuser=0下載與電腦chrome對應的driver版本
+    # 1. 前往https://sites.google.com/chromium.org/driver/downloads?authuser=0 下載與電腦chrome對應的driver版本
     # 2. 將下載解壓縮後的 chromedriver.exe 放到以下路徑
     s = Service(r"C:\Program Files\Google\Chrome\Application\chromedriver.exe") # selenium 瀏覽器選項配置
     
@@ -342,12 +342,16 @@ def parse_cnyesNews(company_id, company_business_entity):
     replace_string = ['股份', '有限', '公司']
     for s in replace_string:
         company_name = company_business_entity.replace(s, "")
-    if len(company_name) > 3:
-        keyword = company_name[:4]
-    elif len(company_name) == 3:
-        keyword = company_name[:3]
-    else:
+    common_name = ['台灣', '臺灣', '中華', '中國', '台中', '臺中', '台北', '臺北']
+    if not company_name[:2] in common_name:
         keyword = company_name[:2]
+    else:
+        if len(company_name) > 3:
+            keyword = company_name[:4]
+        elif len(company_name) == 3:
+            keyword = company_name[:3]
+        else:
+            keyword = company_name[:2]
 
     print(f" ------------ 爬蟲開始: 關鍵字: {keyword} ------------")
     logger.info(f"------------ 爬蟲開始: 關鍵字: {keyword} ------------")
@@ -357,8 +361,8 @@ def parse_cnyesNews(company_id, company_business_entity):
     browser.get(url)
     time.sleep(2)
     res = browser.page_source
-    soup = BeautifulSoup(res, features='html.parser')
-    prettyHtml = soup.prettify()
+    # soup = BeautifulSoup(res, features='html.parser')
+    # prettyHtml = soup.prettify()
     soup = BeautifulSoup(res, 'lxml')
     articles = soup.find_all('article')
     list_added = []
