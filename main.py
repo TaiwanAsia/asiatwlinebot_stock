@@ -505,7 +505,7 @@ def search_output(user_id, reply_token, company):
         NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
     else:
         if len(company_news[0].news_title) > 0:
-            NewsFlexMessage["body"]["contents"][0]["text"] = company_news.keyword + " - 新聞"
+            NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
             NewsByYear = {}
             ContentBox = [] # 年份&新聞BOX
             for news in company_news:
