@@ -25,6 +25,13 @@ class Company_news(db.Model):
     def find_by_company_id(company_id):
         return Company_news.query.filter_by(company_id=company_id).first()
 
+    def today_update_check_by_keyword(keyword):
+        today = datetime.today().date()
+        updatedtime_filter = Company_news.updated_at > datetime(today.year, today.month, today.day)
+        keyword_filter = Company_news.keyword == keyword
+        query = Company_news.query.filter(keyword_filter, updatedtime_filter)
+        return query.limit(15).all()
+
     def today_update_check_by_company_id(company_id): # 回傳list
         today = datetime.today().date()
         updatedtime_filter = Company_news.updated_at > datetime(today.year, today.month, today.day)

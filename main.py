@@ -351,6 +351,18 @@ def handle_postback(event):
             if stock_info is not None:
                 output_companies.append(result)
         multiple_result_output_2(reply_token, industry.name, output_companies)
+
+    ##### 查詢股價
+    if action == 'dataset_day':
+        dataset_day_id = param[1]
+        company_stock  = dataset_day_model.Dataset_day.find_by_id(dataset_day_id)
+        company        = company_model.Company.find_by_business_entity_like_search(company_stock.company_name.split("股份")[0])[0]
+        company_stock_output(reply_token, user_id, company_stock, company)
+
+    ##### 查詢新聞
+    if action == 'company_news':
+        keyword = param[1]
+        company_news_output(reply_token, user_id, keyword)
             
 
 
@@ -400,15 +412,13 @@ def search_output(user_id, reply_token, company):
     CarouselMessage['contents'].append(FlexMessage) # 放入Carousel
 
 
-    added_already = False
-    favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
-    if favorite_company is not None:
-        if favorite_company.company_ids.find(str(company.id)) >= 0:
-            added_already = True
+    
 
     #
     # 2 股市資料
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
+    ChoosingFlexMessage  = json.load(open('templates/choosing.json','r',encoding='utf-8'))
+
 
     company_stock_info = dataset_day_model.Dataset_day.find_by_company_name_like_search(company.business_entity)
     if len(company_stock_info) < 1:
@@ -425,33 +435,38 @@ def search_output(user_id, reply_token, company):
         TradeinfoFlexMessage['body']['contents'].pop(4)
         TradeinfoFlexMessage['body']['contents'].pop(3)
         TradeinfoFlexMessage['body']['contents'].pop(1)
-    elif len(company_stock_info) == 1:
-        company_stock_info = company_stock_info[0]
-        BoxTop = TradeinfoFlexMessage['body']['contents'][0]
-        BoxTop['contents'][0]['text'] = company.business_entity
-        Target_buy  = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
-        Target_sell = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][1]
-        Target_buy['contents'][0]['text'] = company_stock_info.buy_amount # 目前只使用必富網資料
-        Target_buy['contents'][2]['text'] = company_stock_info.buy_average
-        Target_sell['contents'][0]['text'] = company_stock_info.sell_amount # 目前只使用必富網資料
-        Target_sell['contents'][2]['text'] = company_stock_info.sell_average
-        WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
-        WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company.business_entity[:4]}"
-        WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
-        WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company.business_entity[:4]}"
-        if added_already:
-            TradeinfoFlexMessage["body"]["contents"][3]["action"]["label"] = "移出自選股"
-            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"]  = f"delFavorite&{company.id}" # 取消自選股
-        else:
-            TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{company.id}" # 加入自選股
-        # 產業鏈
         industry = industry_model.Industry.get_by_code(company.industrial_classification)
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {industry.name}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{industry.code}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
+        CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
+    # elif len(company_stock_info) == 1:
+    #     company_stock_info = company_stock_info[0]
+    #     BoxTop = TradeinfoFlexMessage['body']['contents'][0]
+    #     BoxTop['contents'][0]['text'] = company.business_entity
+    #     Target_buy  = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
+    #     Target_sell = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][1]
+    #     Target_buy['contents'][0]['text'] = company_stock_info.buy_amount # 目前只使用必富網資料
+    #     Target_buy['contents'][2]['text'] = company_stock_info.buy_average
+    #     Target_sell['contents'][0]['text'] = company_stock_info.sell_amount # 目前只使用必富網資料
+    #     Target_sell['contents'][2]['text'] = company_stock_info.sell_average
+    #     WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+    #     WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company.business_entity[:4]}"
+    #     WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+    #     WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company.business_entity[:4]}"
+    #     if added_already:
+    #         TradeinfoFlexMessage["body"]["contents"][3]["action"]["label"] = "移出自選股"
+    #         TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"]  = f"delFavorite&{company.id}" # 取消自選股
+    #     else:
+    #         TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{company.id}" # 加入自選股
+    #     # 產業鏈
+    #     industry = industry_model.Industry.get_by_code(company.industrial_classification)
+    #     TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
+    #     TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {industry.name}"
+    #     TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{industry.code}"
+    #     TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
     else:
-        TradeinfoFlexMessage = json.load(open('templates/choosing.json','r',encoding='utf-8'))
         candidates_list = []
         title = {
             "type": "box",
@@ -459,8 +474,8 @@ def search_output(user_id, reply_token, company):
             "contents": [
                 {
                     "type": "text",
-                    "text": "股價",
-                    "size": "xxl",
+                    "text": "是否查詢以下資訊",
+                    "size": "xl",
                     "weight": "bold",
                     "align": "center"
                 }
@@ -468,61 +483,114 @@ def search_output(user_id, reply_token, company):
         } 
         candidates_list.append(title)
         for company_stock in company_stock_info:
+            company_stock_name = company_stock.company_name.split("\xa0")[0]
             data = {
                 "type": "button",
                 "action": {
                     "type": "postback",
-                    "label": f"{company_stock.company_name}",
-                    "data": "hello",
-                    "displayText": f"{company_stock.company_name}股價"
+                    "label": f"股價：{company_stock_name}",
+                    "data": f"dataset_day&{company_stock.id}",
+                    "displayText": f"{company_stock_name}股價"
                 }
             }
             candidates_list.append(data)
-        TradeinfoFlexMessage["body"]["contents"] = candidates_list
-        
-    CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
+        ChoosingFlexMessage["body"]["contents"] = candidates_list
 
-    
+    #
     # 3 新聞
-    NewsFlexMessage = json.load(open("templates/company_news.json","r",encoding="utf-8"))
-    YearBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][1]) # 取出年份BOX當模板
-    NewsBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][2]) # 取出新聞BOX當模板
-    NewsFlexMessage["body"]["contents"] = NewsFlexMessage["body"]["contents"][:1] # 移除年份、新聞BOX，現在只剩公司名稱BOX
-    
-    check = company_news_model.Company_news.today_update_check_by_company_id(company.id)
-    if check is None or len(check) < 1:
-        line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
-        parse_cnyesNews(company.id, company.business_entity) # 爬蟲
+    if len(company_stock_info) < 1:
+        candidates_list = []
+    separator = {
+        "type": "separator"
+    }
+    ChoosingFlexMessage["body"]["contents"].append(separator)
+    company_name = company.business_entity.split("股份")[0]
+    data = { ## 使用者選擇的公司 obj: company
+        "type": "button",
+        "action": {
+            "type": "postback",
+            "label": f"新聞：{company_name}",
+            "data": f"company_news&{company_name}",
+            "displayText": f"{company_name}新聞"
+        }
+    }
+    candidates_list.append(data)
+    data = { ## 使用者選擇的公司 obj: company，前2字
+        "type": "button",
+        "action": {
+            "type": "postback",
+            "label": f"新聞：{company_name[:2]}",
+            "data": f"company_news&{company_name[:2]}",
+            "displayText": f"{company_name[:2]}新聞"
+        }
+    }
+    candidates_list.append(data)
+    data = { ## 使用者選擇的公司 obj: company，前3字
+        "type": "button",
+        "action": {
+            "type": "postback",
+            "label": f"新聞：{company_name[:3]}",
+            "data": f"company_news&{company_name[:3]}",
+            "displayText": f"{company_name[:3]}新聞"
+        }
+    }
+    candidates_list.append(data)
+    for other_company in company_stock_info: # obj: dataset_day
+        other_company_name = other_company.company_name.split("\xa0")[0]
+        data = { ## 類似名稱 且 有股價的公司
+            "type": "button",
+            "action": {
+                "type": "postback",
+                "label": f"新聞：{other_company_name}",
+                "data": f"company_news&{other_company_name}",
+                "displayText": f"{other_company_name}新聞"
+            }
+        }
+        candidates_list.append(data)
+    ChoosingFlexMessage["body"]["contents"] = candidates_list
+    CarouselMessage['contents'].append(ChoosingFlexMessage) # 放入Carousel
 
-    company_news = company_news_model.Company_news.today_update_check_by_company_id(company.id)
-
-    if company_news is None or len(company_news) < 1:
-        NewsFlexMessage["body"]["contents"][0]["text"] = "新聞"
-    else:
-        if len(company_news[0].news_title) > 0:
-            NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
-            NewsByYear = {}
-            ContentBox = [] # 年份&新聞BOX
-            for news in company_news:
-                year = news.news_date.split("-")[0]
-                if year not in NewsByYear:
-                    NewsByYear[year] = []
-                NewsByYear[year].append(news)
-            for year in NewsByYear:
-                YearBox = copy.deepcopy(YearBoxSample)
-                YearBox["contents"][0]["text"] = year + "年"
-                ContentBox.append(YearBox) # 先放年份
-                for news in NewsByYear[year]:
-                    NewsBox = copy.deepcopy(NewsBoxSample)
-                    NewsBox["contents"][0]["contents"][0]["text"] = news.news_title
-                    NewsBox["contents"][0]["contents"][0]["action"]['uri'] = news.news_url
-                    NewsBox["contents"][0]["contents"][1]["text"] = news.news_date.split("-")[1] + "/" + news.news_date.split("-")[2]
-                    ContentBox.append(NewsBox) # 再放新聞
-            NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
-        else:
-            NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
     
-    CarouselMessage["contents"].append(NewsFlexMessage) # 放入Carousel
+    # # 3 新聞
+    # NewsFlexMessage = json.load(open("templates/company_news.json","r",encoding="utf-8"))
+    # YearBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][1]) # 取出年份BOX當模板
+    # NewsBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][2]) # 取出新聞BOX當模板
+    # NewsFlexMessage["body"]["contents"] = NewsFlexMessage["body"]["contents"][:1] # 移除年份、新聞BOX，現在只剩公司名稱BOX
+    
+    # check = company_news_model.Company_news.today_update_check_by_company_id(company.id)
+    # if check is None or len(check) < 1:
+    #     line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
+    #     parse_cnyesNews(company.id, company.business_entity) # 爬蟲
+
+    # company_news = company_news_model.Company_news.today_update_check_by_company_id(company.id)
+
+    # if company_news is None or len(company_news) < 1:
+    #     NewsFlexMessage["body"]["contents"][0]["text"] = "新聞"
+    # else:
+    #     if len(company_news[0].news_title) > 0:
+    #         NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
+    #         NewsByYear = {}
+    #         ContentBox = [] # 年份&新聞BOX
+    #         for news in company_news:
+    #             year = news.news_date.split("-")[0]
+    #             if year not in NewsByYear:
+    #                 NewsByYear[year] = []
+    #             NewsByYear[year].append(news)
+    #         for year in NewsByYear:
+    #             YearBox = copy.deepcopy(YearBoxSample)
+    #             YearBox["contents"][0]["text"] = year + "年"
+    #             ContentBox.append(YearBox) # 先放年份
+    #             for news in NewsByYear[year]:
+    #                 NewsBox = copy.deepcopy(NewsBoxSample)
+    #                 NewsBox["contents"][0]["contents"][0]["text"] = news.news_title
+    #                 NewsBox["contents"][0]["contents"][0]["action"]['uri'] = news.news_url
+    #                 NewsBox["contents"][0]["contents"][1]["text"] = news.news_date.split("-")[1] + "/" + news.news_date.split("-")[2]
+    #                 ContentBox.append(NewsBox) # 再放新聞
+    #         NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
+    #     else:
+    #         NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
+    
+    # CarouselMessage["contents"].append(NewsFlexMessage) # 放入Carousel
 
     line_bot_api.reply_message(reply_token, FlexSendMessage('Company Info',CarouselMessage))
 
@@ -607,16 +675,31 @@ def multiple_result_output_2(reply_token, keyword, companies): # 參數companies
     FlexMessage['contents'][0]['header']['contents'][0]['text'] = keyword
     candidates_list = []
 
+    moved   = []
+    deleted = []
     for index, company in enumerate(companies):
         result = dataset_day_model.Dataset_day.find_by_company_name_like_search(company.business_entity)
         if len(result) > 0:
-            companies.insert(0, company)
-            del companies[index]
+            moved.append(company)
+            deleted.append(index)
+    for c in sorted(deleted, reverse=True):
+        del companies[c]
+    for c in moved:
+        companies.insert(0, c)
     
     for i in range(len(companies) if len(companies) <= 10 else 10):
-        if len(companies[i].business_entity) >= 10:
-            business_entity_1 = companies[i].business_entity[:10]
-            business_entity_2 = companies[i].business_entity[10:]
+        replace_string = ['股份', '有限', '分公司', '公司']
+        company_name = companies[i].business_entity
+        for s in replace_string:
+            company_name = company_name.replace(s, "")
+        if len(company_name) >= 10:
+            if i != 0:
+                seperator = {
+                    "type": "separator"
+                }
+                candidates_list.append(seperator)
+            business_entity_1 = company_name[:10]
+            business_entity_2 = company_name[10:]
             cand_1 =  {
                 "type": "button",
                 "action": {
@@ -645,7 +728,7 @@ def multiple_result_output_2(reply_token, keyword, companies): # 參數companies
                 "type": "button",
                 "action": {
                     "type": "postback",
-                    "label": f"{companies[i].business_entity}",
+                    "label": f"{company_name}",
                     "data": f"company&{companies[i].id}"
                 }
             }
@@ -666,9 +749,82 @@ def multiple_result_output_2(reply_token, keyword, companies): # 參數companies
     line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
 
 
+### 輸出公司股價
+def company_stock_output(reply_token, user_id, company_stock, company):
+    TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
+    added_already = False
+    favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
+    if favorite_company is not None:
+        if favorite_company.company_ids.find(str(company.id)) >= 0:
+            added_already = True
+    BoxTop = TradeinfoFlexMessage['body']['contents'][0]
+    BoxTop['contents'][0]['text'] = company.business_entity
+    Target_buy  = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][0]
+    Target_sell = TradeinfoFlexMessage['body']['contents'][1]['contents'][0]['contents'][3]['contents'][1]
+    Target_buy['contents'][0]['text'] = company_stock.buy_amount # 目前只使用必富網資料
+    Target_buy['contents'][2]['text'] = company_stock.buy_average
+    Target_sell['contents'][0]['text'] = company_stock.sell_amount # 目前只使用必富網資料
+    Target_sell['contents'][2]['text'] = company_stock.sell_average
+    WantBox_sell  = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][0]
+    WantBox_sell['action']['data'] = WantBox_sell['action']['data'] + f"&{user_id}&sell&{company.business_entity[:4]}"
+    WantBox_buy = TradeinfoFlexMessage['body']['contents'][1]['contents'][1]['contents'][2]
+    WantBox_buy['action']['data'] = WantBox_buy['action']['data'] + f"&{user_id}&buy&{company.business_entity[:4]}"
+    if added_already:
+        TradeinfoFlexMessage["body"]["contents"][3]["action"]["label"] = "移出自選股"
+        TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"]  = f"delFavorite&{company.id}" # 取消自選股
+    else:
+        TradeinfoFlexMessage["body"]["contents"][3]["action"]["data"] += f"&{company.id}" # 加入自選股
+    # 產業鏈
+    industry = industry_model.Industry.get_by_code(company.industrial_classification)
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {industry.name}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{industry.code}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
+    line_bot_api.reply_message(reply_token, FlexSendMessage('Trade Info', TradeinfoFlexMessage))
 
 
+### 輸出公司新聞
+def company_news_output(reply_token, user_id, keyword):
 
+    NewsFlexMessage = json.load(open("templates/company_news.json","r",encoding="utf-8"))
+    YearBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][1]) # 取出年份BOX當模板
+    NewsBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][2]) # 取出新聞BOX當模板
+    NewsFlexMessage["body"]["contents"] = NewsFlexMessage["body"]["contents"][:1] # 移除年份、新聞BOX，現在只剩公司名稱BOX
+
+    check = company_news_model.Company_news.today_update_check_by_keyword(keyword)
+    if len(check) < 1:
+        line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
+        parse_cnyesNews(keyword=keyword) # 爬蟲
+
+    company_news = company_news_model.Company_news.today_update_check_by_keyword(keyword)
+
+    if company_news is None or len(company_news) < 1:
+        NewsFlexMessage["body"]["contents"][0]["text"] = "新聞"
+    else:
+        if len(company_news[0].news_title) > 0:
+            NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
+            NewsByYear = {}
+            ContentBox = [] # 年份&新聞BOX
+            for news in company_news:
+                year = news.news_date.split("-")[0]
+                if year not in NewsByYear:
+                    NewsByYear[year] = []
+                NewsByYear[year].append(news)
+            for year in NewsByYear:
+                YearBox = copy.deepcopy(YearBoxSample)
+                YearBox["contents"][0]["text"] = year + "年"
+                ContentBox.append(YearBox) # 先放年份
+                for news in NewsByYear[year]:
+                    NewsBox = copy.deepcopy(NewsBoxSample)
+                    NewsBox["contents"][0]["contents"][0]["text"] = news.news_title
+                    NewsBox["contents"][0]["contents"][0]["action"]['uri'] = news.news_url
+                    NewsBox["contents"][0]["contents"][1]["text"] = news.news_date.split("-")[1] + "/" + news.news_date.split("-")[2]
+                    ContentBox.append(NewsBox) # 再放新聞
+            NewsFlexMessage["body"]["contents"] += ContentBox # 把年份+新聞BOX加回去公司名稱BOX後
+        else:
+            NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
+
+    line_bot_api.reply_message(reply_token, FlexSendMessage('Trade Info', NewsFlexMessage))
 
 
         
