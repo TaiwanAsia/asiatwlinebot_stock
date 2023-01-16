@@ -44,6 +44,9 @@ class Dataset_day(db.Model):
         self.date = date
         self.updated_at = updated_at
 
+    def find_by_id(id):
+        return Dataset_day.query.filter_by(id=id).first()
+
     def find_by_company_name(company_name):
         keyword = company_name.split("股份")[0]
         return Dataset_day.query.filter_by(company_name=keyword).first()

@@ -313,10 +313,10 @@ def parse_company_fullname(db, app):
 
 # 鉅亨網
 #######################################  鉅亨網新聞  #######################################
-def parse_cnyesNews(company_id, company_business_entity):
+def parse_cnyesNews(company_id='', company_business_entity='', keyword=''):
 
-    print(f"\n ------------ 爬蟲開始: 鉅亨網 {company_id} {company_business_entity} ------------")
-    logger.info(f"------------ 爬蟲開始: 鉅亨網 {company_id} {company_business_entity} ------------")
+    print(f"\n ------------ 爬蟲開始: 鉅亨網 {company_id} {company_business_entity} {keyword} ------------")
+    logger.info(f"------------ 爬蟲開始: 鉅亨網 {company_id} {company_business_entity} {keyword} ------------")
 
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
@@ -339,19 +339,21 @@ def parse_cnyesNews(company_id, company_business_entity):
         return
     browser.maximize_window()
     # url = f'https://www.cnyes.com/search/news?keyword={company_name}' # 另一個頁面，也可撈
-    replace_string = ['股份', '有限', '公司']
-    for s in replace_string:
-        company_name = company_business_entity.replace(s, "")
-    common_name = ['台灣', '臺灣', '中華', '中國', '台中', '臺中', '台北', '臺北']
-    if not company_name[:2] in common_name:
-        keyword = company_name[:2]
-    else:
-        if len(company_name) > 3:
-            keyword = company_name[:4]
-        elif len(company_name) == 3:
-            keyword = company_name[:3]
-        else:
+
+    if keyword == '':
+        replace_string = ['股份', '有限', '公司']
+        for s in replace_string:
+            company_name = company_business_entity.replace(s, "")
+        common_name = ['台灣', '臺灣', '中華', '中國', '台中', '臺中', '台北', '臺北']
+        if not company_name[:2] in common_name:
             keyword = company_name[:2]
+        else:
+            if len(company_name) > 3:
+                keyword = company_name[:4]
+            elif len(company_name) == 3:
+                keyword = company_name[:3]
+            else:
+                keyword = company_name[:2]
 
     print(f" ------------ 爬蟲開始: 關鍵字: {keyword} ------------")
     logger.info(f"------------ 爬蟲開始: 關鍵字: {keyword} ------------")
