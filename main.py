@@ -432,14 +432,25 @@ def search_output(user_id, reply_token, company):
             "align": "center"
         }
         BoxTop['contents'].append(notFound)
-        TradeinfoFlexMessage['body']['contents'].pop(4)
-        TradeinfoFlexMessage['body']['contents'].pop(3)
+        # TradeinfoFlexMessage['body']['contents'].pop(4)
+        # TradeinfoFlexMessage['body']['contents'].pop(3)
         TradeinfoFlexMessage['body']['contents'].pop(1)
         industry = industry_model.Industry.get_by_code(company.industrial_classification)
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{industry.upstream_1 if industry.upstream_1 else -1}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {industry.name}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{industry.code}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{industry.downstream_1 if industry.downstream_1 else -1}"
+        added_already = False
+        favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
+        if favorite_company is not None:
+            if favorite_company.company_ids.find(str(company.id)) >= 0:
+                added_already = True
+        if added_already:
+            TradeinfoFlexMessage["body"]["contents"][2]["action"]["label"] = "移出自選股"
+            TradeinfoFlexMessage["body"]["contents"][2]["action"]["data"]  = f"delFavorite&{company.id}" # 取消自選股
+        else:
+            TradeinfoFlexMessage["body"]["contents"][2]["action"]["data"] += f"&{company.id}" # 加入自選股
+
         CarouselMessage['contents'].append(TradeinfoFlexMessage) # 放入Carousel
     # elif len(company_stock_info) == 1:
     #     company_stock_info = company_stock_info[0]
