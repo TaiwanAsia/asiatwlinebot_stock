@@ -1,24 +1,27 @@
 # 台股小百科
 
 使用LINE Messaging-api 建立可查詢台股相關資訊的LINE機器人。
->此機器人使用 ngrok 取得 https 網址
 
-## 安裝、設定
+-----
 
-### 安裝Python
+## 安裝
+
+### 安裝 - Python
 
 >建議使用Python3.7，並且將python安裝路徑加入到環境變數的PATH中
 
 pip or pip3 下指令:
 `pip install -r requirements.txt`
 
-### 安裝MySQL
+### 安裝 - MySQL
 
 Windows 載點 : [MySQL Windows Installer Donwload](https://dev.mysql.com/downloads/installer/)
 
 將 [sql](/database/linebot_stock.sql) 匯入至資料庫
 
-## 如何設定
+-----
+
+## 設定
 
 ### 設定 - 程式
 
@@ -42,7 +45,7 @@ Windows 載點 : [MySQL Windows Installer Donwload](https://dev.mysql.com/downlo
 2. 記下<font color=#0000FF>Channel secret</font>，填入上述所說config.py內
 3. <font color=red>Webhook URL</font> 填入 -> <https://你的域名/callback> (你的域名就是上個步驟運行ngrok後，顯示出的網址)
 
-----------------
+-----
 
 ## 範例
 
