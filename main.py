@@ -11,6 +11,7 @@ from models.shared_db_model import db
 from models.stock_model import Stock
 from models import user_favorite_company_model, company_news_model, dataset_day_model
 from models import company_model, industry_model, business_code_model
+import api
 import re, _thread, copy
 import json, sys,os
 import pandas as pd
@@ -211,18 +212,22 @@ def handle_message(event):
             uniid = message
             company = company_model.Company.find_by_uniid(uniid)
             if company is None:
-                line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
-                return
+                company_api_data = api.get_company_by_uniid(uniid)
+                if company_api_data:
+                    company = add_company(uniid, company_api_data)
+                else:
+                    line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
+                    return
             search_output(user_id, reply_token, company)
         else:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
+            line_bot_api.reply_message(reply_token, TextSendMessage(text="給我8位數的數字，讓我以統一編號替您查詢。"))
 
     ##### 1.2 關鍵字非INT
     else:
         keyword = message
         companies = company_model.Company.find_by_business_entity_like_search(keyword)
         if len(companies) == 0:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
+            line_bot_api.reply_message(reply_token, (TextSendMessage(text="查無此公司。"),TextSendMessage(text="請再確認一次或試試統一編號查詢。")))
             return
         if len(companies) > 1:
             multiple_result_output(reply_token, keyword, companies)
@@ -245,7 +250,7 @@ def handle_postback(event):
         company = company_model.Company.find_by_id(company_id)
         search_output(user_id, reply_token, company) # 輸出查詢結果
 
-    ##### 2.2 我想買、我想賣
+    ##### 2.2 我想買、我想賣 TODO
     if action == 'iwanttrade':
         user         = str(ts.split("&")[1])
         act          = str(ts.split("&")[2])
@@ -708,6 +713,18 @@ def company_news_output(reply_token, user_id, keyword):
     line_bot_api.reply_message(reply_token, FlexSendMessage('Trade Info', NewsFlexMessage))
 
 
+### 從ronny api新增公司company
+def add_company(uniid, data):
+    year = str(int(data['核准設立日期']['year']) - 1911)
+    company = company_model.Company(uniid = uniid,
+        business_entity=data['公司名稱'],
+        capital=data['實收資本額(元)'],
+        establishment_date=year + data['核准設立日期']['month'] + data['核准設立日期']['day'],
+        company_type=data['財政部']['組織別名稱']
+        )
+    company.save()
+    company.update_business_code()
+    return company
         
     
 
