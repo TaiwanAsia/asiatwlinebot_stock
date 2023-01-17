@@ -2,7 +2,7 @@ import requests, json
 from models.stock_model import Stock
 from models.shared_db_model import db
 
-# 此處function皆用於搜尋"網路資源"
+# 此處function皆使用api
 
 # 用統一編號 找 公司
 def get_company_by_uniid(uniid):
@@ -11,12 +11,12 @@ def get_company_by_uniid(uniid):
     text     = url.text
     json_obj = json.loads(text)
     if '名稱' in json_obj['data']:
-        company_name   = json_obj['data']['名稱']
+        company_data = json_obj['data']
     elif '公司名稱' in json_obj['data']:
-        company_name = json_obj['data']['公司名稱']
+        company_data = json_obj['data']
     else:
         return False
-    return company_name
+    return company_data
 
 
 # 用公司名稱 找 統一編號
