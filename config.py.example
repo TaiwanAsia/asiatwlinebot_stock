@@ -1,28 +1,6 @@
-
-
-# 金秘書
-line_bot_api = 'QjsvCW39MCuSLHErUlch3wa/DpI/Pj19p+9Lovf+FrMMUri1VLDc7klFetz4/bfcF6LP1STRbNjR+LX1ykE59Ab8hbaEupxWchLzAjz3DD3tgDOgnneQ2Cjm4uA0CJpbDmYGMEyoEY5Kb0iqABAjTgdB04t89/1O/w1cDnyilFU='
-handler = '3993c4bdf4997225db18561d3244971b'
-
-# 資料庫設定
-# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://b2c093cf2e3775:087cc1cd@us-cdbr-east-04.cleardb.com/heroku_38af9ed956129ed"
-app_config = "mysql+pymysql://root:root@127.0.0.1:3306/asiatwlinebot"
-
-
-# IU
-# line_bot_api = LineBotApi('n3mS5jbtDnOFx/2D08RjFd1/xYDRIA3q8pIRseVtCjOQfEN5EGCa6y7iHkJn8z6GXWzdUTlRSFnPvYeEbxThl765WinmC33U6ZufRQJ7hxbAgdiEZrn99ZUhdjamx0SGdYgKdzRzedpqISaTQZ07IwdB04t89/1O/w1cDnyilFU=')
-# handler = WebhookHandler('732633e1970cad234502531cd100ba40')
-# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@127.0.0.1:3306/linebot"
-# port = 8888
-
-
 # 台股小百科
-line_bot_api = 't8UzlMSXYFSAmYxwsfFWAJJDRdDFOb9O5+fW5prYUIPfhtfzy4YAQqjFz1iafzk+sTxK3pdR0VR1a3slz8X5fSMwu8jGqhA26UIJdEwyk75YEUZqqO1UpyBa+m4BlQSl4wcUMCTLz6LZvx5uhf0AEwdB04t89/1O/w1cDnyilFU='
-# handler = '8fe9468482ca4f59d910a1e546dfc0d5'
-app_config = "mysql+pymysql://root:RickOrNeil@127.0.0.1:3306/linebot_stock"
-
-
-# 台股小百科_test
-line_bot_api = 'mfo037IO4AzDABdqjH98ESquA0AuM49kdHCzped3i5WQdJ3wjFCQqg2NiqnQ3nk3aN3OulPO219sAmNN3IGyk7CxKn8llDoYMIyRI+KExvgCgeEico8DxW95tnDAawaeP4fLlUJVhm60RMNt6tNJkwdB04t89/1O/w1cDnyilFU='
-handler = 'a865896b514cd803691c05330c7f6e17'
-port = 8888
+app_config = "mysql+pymysql://帳號:密碼@你的IP:你的PORT/你設定的資料庫名稱"
+# Example: app_config = "mysql+pymysql://account123:password123@127.0.0.1:3306/linebot_stock"
+line_bot_api = 'LINE Developers 裡的 Channel access token'
+handler = 'LINE Messaging API 設定裡的 Channel secret'
+port = 8888 # 你ngrok要設定的port

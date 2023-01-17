@@ -16,81 +16,54 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `cmp`
+-- Table structure for table `company`
 --
 
-DROP TABLE IF EXISTS `cmp`;
+DROP TABLE IF EXISTS `company`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `cmp` (
+CREATE TABLE `company` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `cmp_name` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `date` date DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `cmp_ancs`
---
-
-DROP TABLE IF EXISTS `cmp_ancs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `cmp_ancs` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `cmp_id` int(5) DEFAULT NULL,
-  `cmp_name` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `ancs_title` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `ancs_content` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `ancs_date` date DEFAULT NULL,
+  `uniid` varchar(10) COLLATE utf8mb4_bin NOT NULL,
+  `top_uniid` varchar(10) COLLATE utf8mb4_bin DEFAULT NULL,
+  `business_entity` varchar(225) COLLATE utf8mb4_bin NOT NULL,
+  `capital` varchar(30) COLLATE utf8mb4_bin NOT NULL DEFAULT '0',
+  `establishment_date` varchar(30) COLLATE utf8mb4_bin NOT NULL,
+  `company_type` varchar(30) COLLATE utf8mb4_bin NOT NULL,
+  `industrial_classification` varchar(30) COLLATE utf8mb4_bin NOT NULL,
+  `industrial_name` varchar(45) COLLATE utf8mb4_bin NOT NULL,
+  `industrial_classification_1` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_name_1` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_classification_2` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_name_2` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_classification_3` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_name_3` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `id_UNIQUE` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uniid_UNIQUE` (`uniid`)
+) ENGINE=InnoDB AUTO_INCREMENT=705676 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `company_l_o`
+-- Table structure for table `company_news`
 --
 
-DROP TABLE IF EXISTS `company_l_o`;
+DROP TABLE IF EXISTS `company_news`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `company_l_o` (
-  `id` int(11) DEFAULT NULL,
-  `出表日期` int(11) DEFAULT NULL,
-  `公司代號` int(11) DEFAULT NULL,
-  `公司名稱` text COLLATE utf8mb4_unicode_ci,
-  `公司簡稱` text COLLATE utf8mb4_unicode_ci,
-  `外國企業註冊地國` text COLLATE utf8mb4_unicode_ci,
-  `產業別` int(11) DEFAULT NULL,
-  `住址` text COLLATE utf8mb4_unicode_ci,
-  `營利事業統一編號` int(11) DEFAULT NULL,
-  `董事長` text COLLATE utf8mb4_unicode_ci,
-  `總經理` text COLLATE utf8mb4_unicode_ci,
-  `發言人` text COLLATE utf8mb4_unicode_ci,
-  `發言人職稱` text COLLATE utf8mb4_unicode_ci,
-  `代理發言人` text COLLATE utf8mb4_unicode_ci,
-  `總機電話` text COLLATE utf8mb4_unicode_ci,
-  `成立日期` int(11) DEFAULT NULL,
-  `上市日期` int(11) DEFAULT NULL,
-  `普通股每股面額` text COLLATE utf8mb4_unicode_ci,
-  `實收資本額` bigint(20) DEFAULT NULL,
-  `私募股數` int(11) DEFAULT NULL,
-  `特別股` int(11) DEFAULT NULL,
-  `編制財務報表類型` int(11) DEFAULT NULL,
-  `股票過戶機構` text COLLATE utf8mb4_unicode_ci,
-  `過戶電話` text COLLATE utf8mb4_unicode_ci,
-  `過戶地址` text COLLATE utf8mb4_unicode_ci,
-  `簽證會計師事務所` text COLLATE utf8mb4_unicode_ci,
-  `簽證會計師1` text COLLATE utf8mb4_unicode_ci,
-  `簽證會計師2` text COLLATE utf8mb4_unicode_ci,
-  `英文簡稱` text COLLATE utf8mb4_unicode_ci,
-  `英文通訊地址` text COLLATE utf8mb4_unicode_ci,
-  `傳真機號碼` text COLLATE utf8mb4_unicode_ci,
-  `電子郵件信箱` text COLLATE utf8mb4_unicode_ci,
-  `網址` text COLLATE utf8mb4_unicode_ci
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `company_news` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `company_id` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `company_business_entity` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `keyword` varchar(15) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `news_title` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `news_content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `news_url` varchar(225) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `news_date` varchar(45) COLLATE utf8_bin DEFAULT NULL,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`),
+  KEY `keyword` (`keyword`)
+) ENGINE=InnoDB AUTO_INCREMENT=223 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -121,7 +94,122 @@ CREATE TABLE `dataset_day` (
   `date` date DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=201 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `industry`
+--
+
+DROP TABLE IF EXISTS `industry`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `industry` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `code` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `upstream_1` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `upstream_2` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `downstream_1` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `downstream_2` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1602 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `notstock`
+--
+
+DROP TABLE IF EXISTS `notstock`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `notstock` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `notstock_code` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `notstock_name` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `listing_date` date NOT NULL,
+  `category` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=338 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stock`
+--
+
+DROP TABLE IF EXISTS `stock`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `stock` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `stock_code` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stock_name` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stock_full_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stock_uniid` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `listing_date` date DEFAULT NULL,
+  `stock_type` tinyint(1) DEFAULT NULL COMMENT '1=>未上市,2=>上市櫃',
+  `category` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `stock_name` (`stock_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1332 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `stock_news`
+--
+
+DROP TABLE IF EXISTS `stock_news`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `stock_news` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `stock_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stock_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stock_news_title` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `stock_news_content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stock_news_url` varchar(225) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `stock_news_date` varchar(45) COLLATE utf8_bin DEFAULT NULL,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=805 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `user_favorite_company`
+--
+
+DROP TABLE IF EXISTS `user_favorite_company`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_favorite_company` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `userid` varchar(225) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `company_ids` text COLLATE utf8mb4_unicode_ci COMMENT '使用者自選股，股票代號',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `userid_UNIQUE` (`userid`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='使用者的自選股';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `user_favorite_stock`
+--
+
+DROP TABLE IF EXISTS `user_favorite_stock`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_favorite_stock` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_userid` varchar(225) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'user表的userid',
+  `stock_ids` text COLLATE utf8mb4_unicode_ci COMMENT '使用者自選股，股票代號',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_userid_UNIQUE` (`user_userid`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='使用者的自選股';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -150,4 +238,4 @@ CREATE TABLE `website` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-10-04 12:50:56
+-- Dump completed on 2023-01-17 13:18:11
