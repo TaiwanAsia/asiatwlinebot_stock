@@ -16,6 +16,25 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `business_code`
+--
+
+DROP TABLE IF EXISTS `business_code`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `business_code` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `code` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '營業項目代碼',
+  `name_ch` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '營業項目',
+  `name_en` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '英文營業項目',
+  `definition` text COLLATE utf8mb4_unicode_ci COMMENT '定義內容',
+  `upstream` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `downstream` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=676 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='營業項目代碼，而非行業代碼。';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `company`
 --
 
@@ -30,17 +49,20 @@ CREATE TABLE `company` (
   `capital` varchar(30) COLLATE utf8mb4_bin NOT NULL DEFAULT '0',
   `establishment_date` varchar(30) COLLATE utf8mb4_bin NOT NULL,
   `company_type` varchar(30) COLLATE utf8mb4_bin NOT NULL,
-  `industrial_classification` varchar(30) COLLATE utf8mb4_bin NOT NULL,
-  `industrial_name` varchar(45) COLLATE utf8mb4_bin NOT NULL,
-  `industrial_classification_1` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL,
+  `business_code` text COLLATE utf8mb4_bin,
+  `industrial_classification` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '行業代碼',
+  `industrial_name` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_classification_1` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '行業代碼',
   `industrial_name_1` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
-  `industrial_classification_2` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_classification_2` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '行業代碼',
   `industrial_name_2` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
-  `industrial_classification_3` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL,
+  `industrial_classification_3` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '行業代碼',
   `industrial_name_3` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
+  `companycol` varchar(45) COLLATE utf8mb4_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniid_UNIQUE` (`uniid`)
-) ENGINE=InnoDB AUTO_INCREMENT=705676 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+  UNIQUE KEY `uniid_UNIQUE` (`uniid`),
+  KEY `business_code` (`business_code`(50))
+) ENGINE=InnoDB AUTO_INCREMENT=705676 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin COMMENT='industrial_classification是行業代碼，而非營業項目代碼(business_code)。';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -63,7 +85,7 @@ CREATE TABLE `company_news` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   KEY `keyword` (`keyword`)
-) ENGINE=InnoDB AUTO_INCREMENT=223 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=224 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -196,23 +218,6 @@ CREATE TABLE `user_favorite_company` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `user_favorite_stock`
---
-
-DROP TABLE IF EXISTS `user_favorite_stock`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `user_favorite_stock` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_userid` varchar(225) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'user表的userid',
-  `stock_ids` text COLLATE utf8mb4_unicode_ci COMMENT '使用者自選股，股票代號',
-  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `user_userid_UNIQUE` (`user_userid`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='使用者的自選股';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `website`
 --
 
@@ -238,4 +243,4 @@ CREATE TABLE `website` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-01-17 13:18:11
+-- Dump completed on 2023-01-17 19:26:07
