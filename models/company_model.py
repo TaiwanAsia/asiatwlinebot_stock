@@ -20,18 +20,35 @@ class Company(db.Model):
     establishment_date = db.Column(db.String, nullable=False)
     company_type       = db.Column(db.String, nullable=False)
     business_code      = db.Column(db.String(10), nullable=False)
-    industrial_classification   = db.Column(db.String, nullable=False)
-    industrial_name    = db.Column(db.String, nullable=False)
-    industrial_classification_1 = db.Column(db.String, nullable=False)
-    industrial_name_1  = db.Column(db.String, nullable=False)
+    industrial_classification   = db.Column(db.String, nullable=True)
+    industrial_name    = db.Column(db.String, nullable=True)
+    industrial_classification_1 = db.Column(db.String, nullable=True)
+    industrial_name_1  = db.Column(db.String, nullable=True)
     industrial_classification_2 = db.Column(db.String, nullable=True)
     industrial_name_2  = db.Column(db.String, nullable=True)
     industrial_classification_3 = db.Column(db.String, nullable=True)
     industrial_name_3  = db.Column(db.String, nullable=True)
 
+    def __init__(self, business_entity, capital, establishment_date, company_type, business_code='', **kwargs) -> None:
+        super(Company, self).__init__(**kwargs)
+        self.business_entity = business_entity
+        self.capital = capital
+        self.establishment_date = establishment_date
+        self.company_type  = company_type
+        self.business_code = business_code
+
     def __repr__(self):
         return '<Company %r  %r %r %r>' % (self.business_entity, self.uniid, self.company_type, self.industrial_name)
 
+    def save(self):
+        db.session.add(self)
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(e)
+            logger.exception(e)
+    
     def find_by_id(id):
         return Company.query.filter_by(id=id).first()
 

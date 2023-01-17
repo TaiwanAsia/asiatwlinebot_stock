@@ -11,6 +11,7 @@ from models.shared_db_model import db
 from models.stock_model import Stock
 from models import user_favorite_company_model, company_news_model, dataset_day_model
 from models import company_model, industry_model, business_code_model
+import api
 import re, _thread, copy
 import json, sys,os
 import pandas as pd
@@ -199,37 +200,34 @@ def handle_message(event):
     user_id = event.source.user_id
     reply_token = event.reply_token
     message = event.message.text
-    today = datetime.now().strftime("%Y-%m-%d")
 
-    #####  1 使用者輸入關鍵字查詢
+    ##### 1 使用者輸入關鍵字查詢
     message = str(message).strip()
 
     pattern = re.compile(r'^[-+]?[-0-9]\d*\.\d*|[-+]?\.?[0-9]\d*$') # 正規表達過濾出純數字
 
-    #####  1.1 關鍵字為INT
+    ##### 1.1 關鍵字為INT
     if pattern.match(message):
-        
-        #####  1.1.1 使用者輸入統一編號 - 使用Company
         if len(message) == 8:
             uniid = message
             company = company_model.Company.find_by_uniid(uniid)
             if company is None:
-                line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
-                return
+                company_api_data = api.get_company_by_uniid(uniid)
+                if company_api_data:
+                    company = add_company(uniid, company_api_data)
+                else:
+                    line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
+                    return
             search_output(user_id, reply_token, company)
-        
-        ##### 1.1.3 找不到資料
         else:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
-
+            line_bot_api.reply_message(reply_token, TextSendMessage(text="給我8位數的數字，讓我以統一編號替您查詢。"))
 
     ##### 1.2 關鍵字非INT
     else:
-        ##### 1.2.1 使用者輸入公司名稱 - 使用Company
         keyword = message
         companies = company_model.Company.find_by_business_entity_like_search(keyword)
         if len(companies) == 0:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司。"))
+            line_bot_api.reply_message(reply_token, (TextSendMessage(text="查無此公司。"),TextSendMessage(text="請再確認一次或試試統一編號查詢。")))
             return
         if len(companies) > 1:
             multiple_result_output(reply_token, keyword, companies)
@@ -245,27 +243,24 @@ def handle_postback(event):
     action = param[0]
     user_id = event.source.user_id
     reply_token = event.reply_token
-    nowdate = datetime.now().strftime("%Y-%m-%d")
-    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    ##### 2.1 回傳公司資料
+    ##### 回傳公司資料
     if action == "company":
         company_id = int(ts.split("&")[1])
         company = company_model.Company.find_by_id(company_id)
         search_output(user_id, reply_token, company) # 輸出查詢結果
 
-    ##### 2.1 我想買、我想賣
+    ##### 2.2 我想買、我想賣 TODO
     if action == 'iwanttrade':
         user         = str(ts.split("&")[1])
         act          = str(ts.split("&")[2])
         company_name = ts.split("&")[3]
 
-    ##### 3.1 加入自選股
+    ##### 2.3 加入自選股
     if action == 'addFavorite':
         company_id = param[1]
         favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
-
-        if favorite_company is None: # 首次新增自選股
+        if favorite_company is None: # 首次新增自選股，建立空資料
             favorite_company = user_favorite_company_model.User_favorite_company(userid=user_id, company_ids='')
             db.session.add(favorite_company)
             try:
@@ -273,27 +268,23 @@ def handle_postback(event):
             except Exception as e:
                 db.session.rollback()
                 print(e)
-
         if favorite_company.company_ids.find(company_id) < 0: # 未加入過此股
             if len(favorite_company.company_ids) > 0:
                 favorite_company.company_ids += f',{company_id}'
             else: # 首次新增自選股
                 favorite_company.company_ids += f'{company_id}'
-
             try:
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
                 print(e)
-
         favorite_company = db.session.merge(favorite_company) # session 已经被提交(commit)，导致操作的 model 对象已经不在当前 session 中了。 解决的办法就是：把对象重新加入到当前 session 中
         favorite_output(reply_token, favorite_company.company_ids)
 
-    ##### 3.2 移出自選股
+    ##### 2.4 移出自選股
     if action == 'delFavorite':
         company_id = param[1]
         favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
-
         favorite_company_list = favorite_company.company_ids.split(",")
         favorite_company_list.remove(str(company_id))
         favorite_company.company_ids = ",".join(favorite_company_list)
@@ -302,11 +293,10 @@ def handle_postback(event):
         except Exception as e:
             db.session.rollback()
             print(e)
-        
         favorite_company = db.session.merge(favorite_company) # session 已经被提交(commit)，导致操作的 model 对象已经不在当前 session 中了。 解决的办法就是：把对象重新加入到当前 session 中
         favorite_output(reply_token, favorite_company.company_ids)
 
-    ##### 3.3 檢視自選股
+    ##### 2.5 檢視自選股
     if action == 'viewFavorite':
         favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
         if favorite_company is None:
@@ -372,7 +362,7 @@ def search_output(user_id, reply_token, company):
     }
 
     #
-    # 1 基本資料
+    # I.基本資料
     FlexMessage = json.load(open('templates/company_info.json','r',encoding='utf-8'))
 
     FlexMessage['body']['contents'][0]['text'] = f"{company.business_entity}"
@@ -401,7 +391,7 @@ def search_output(user_id, reply_token, company):
     
 
     #
-    # 2 股市資料
+    # II.股市資料
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
     ChoosingFlexMessage  = json.load(open('templates/choosing.json','r',encoding='utf-8'))
 
@@ -478,7 +468,7 @@ def search_output(user_id, reply_token, company):
         ChoosingFlexMessage["body"]["contents"] = candidates_list
 
     #
-    # 3 新聞
+    # III.新聞
     if len(company_stock_info) < 1:
         candidates_list = []
     separator = {
@@ -486,7 +476,7 @@ def search_output(user_id, reply_token, company):
     }
     ChoosingFlexMessage["body"]["contents"].append(separator)
     company_name = company.business_entity.split("股份")[0]
-    data = { ## 使用者選擇的公司 obj: company
+    data = { # 使用者選擇的公司 obj: company
         "type": "button",
         "action": {
             "type": "postback",
@@ -496,7 +486,7 @@ def search_output(user_id, reply_token, company):
         }
     }
     candidates_list.append(data)
-    data = { ## 使用者選擇的公司 obj: company，前2字
+    data = { # 使用者選擇的公司 obj: company，前2字
         "type": "button",
         "action": {
             "type": "postback",
@@ -506,7 +496,7 @@ def search_output(user_id, reply_token, company):
         }
     }
     candidates_list.append(data)
-    data = { ## 使用者選擇的公司 obj: company，前3字
+    data = { # 使用者選擇的公司 obj: company，前3字
         "type": "button",
         "action": {
             "type": "postback",
@@ -518,7 +508,7 @@ def search_output(user_id, reply_token, company):
     candidates_list.append(data)
     for other_company in company_stock_info: # obj: dataset_day
         other_company_name = other_company.company_name.split("\xa0")[0]
-        data = { ## 類似名稱 且 有股價的公司
+        data = { # 類似名稱 且 有股價的公司
             "type": "button",
             "action": {
                 "type": "postback",
@@ -538,10 +528,7 @@ def search_output(user_id, reply_token, company):
 # 輸出使用者自選股
 def favorite_output(reply_token, company_ids):
     FavoriteFlexMessage = json.load(open("templates/user_stock.json","r",encoding="utf-8"))
-    # FavoriteFlexMessage["body"]["contents"].clear()
-
     companies = company_model.Company.find_by_ids(company_ids)
-
     for company in companies: # TODO 應該用 IN(code1, code2) 效率會比一直query好
         box = {
                 "type"  : "button",
@@ -726,6 +713,18 @@ def company_news_output(reply_token, user_id, keyword):
     line_bot_api.reply_message(reply_token, FlexSendMessage('Trade Info', NewsFlexMessage))
 
 
+### 從ronny api新增公司company
+def add_company(uniid, data):
+    year = str(int(data['核准設立日期']['year']) - 1911)
+    company = company_model.Company(uniid = uniid,
+        business_entity=data['公司名稱'],
+        capital=data['實收資本額(元)'],
+        establishment_date=year + data['核准設立日期']['month'] + data['核准設立日期']['day'],
+        company_type=data['財政部']['組織別名稱']
+        )
+    company.save()
+    company.update_business_code()
+    return company
         
     
 
