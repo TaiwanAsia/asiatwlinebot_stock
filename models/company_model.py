@@ -65,6 +65,9 @@ class Company(db.Model):
     def find_by_industry(industrial_classification):
         return Company.query.filter_by(industrial_classification=industrial_classification).all()
 
+    def find_by_company_type(company_type):
+        return Company.query.filter_by(company_type=company_type).all()
+
     def find_by_business_code(code):
         filter = Company.business_code.like('%{}%'.format(code))
         query  = Company.query.filter(filter)
@@ -95,5 +98,16 @@ class Company(db.Model):
                     if bc[0] != "":
                         bc_list.append(bc[0])
                 self.business_code = ','.join(bc_list)
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    print('更新營業項目代碼失敗。')
+                    logger.exception('更新營業項目代碼失敗。')
+                    logger.exception(e)
+                    return '更新營業項目代碼失敗'
                 logger.info(f'{self.business_entity} 更新營業項目代碼: {self.business_code}')
+                return 'success'
+            else:
+                return 'api查無資料'
+        else:
+            return '已有營業項目代碼'
