@@ -22,27 +22,27 @@ logger = logging.getLogger(loggerName)
 
 
 #####  爬蟲
-def crawler(target_hour, target_minute, db, debugging, app):
+def crawler(target_hour, target_minute, db, debug_mode, app):
 
     while 1 == 1:
         dt1 = datetime.utcnow().replace(tzinfo=timezone.utc)
         now = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
 
-        if (now.hour == target_hour and now.minute == target_minute) or debugging:
+        if (now.hour == target_hour and now.minute == target_minute) or debug_mode:
             time.sleep(1)
 
             print("\n\n*****  CRAWLING...  *****",now,"\n")
 
             
 
-            if debugging == 2:
-                parse_company(db, app)          # 清空Stock表，爬證交所公司資料
+            # if debug_mode == 2:
+            #     parse_company(db, app)          # 清空Stock表，爬證交所公司資料
 
             parse_company_price(db, app)    # 爬必富網股價
 
-            parse_company_fullname(db, app) # 更新全名、統一編號
+            # parse_company_fullname(db, app) # 更新全名、統一編號
 
-            debugging = False
+            debug_mode = False
 
         
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}金秘書-上下游{% endblock %}
+{% block title %}金秘書-營業項目{% endblock %}
 
 
 {% block main %}
@@ -11,7 +11,7 @@
                 <form action="upstream_downstream" method="post" id="edit_upstream_downstream">
                     
                     <div class="form-group mb-2 w-25">
-                        <label for="formFile" class="form-label"><h3>產業上下游　共 {{ len }} 筆</h3></label>
+                        <label for="formFile" class="form-label"><h3>營業項目　共 {{ len }} 筆</h3></label>
                         <input class="form-control" type="text" name="keyword" placeholder="搜尋產業" value="{{ request.form['keyword'] }}">
                     </div>
 
@@ -19,81 +19,45 @@
                         <table data-toggle="table" data-sort-class="table-active">
                             <thead>
                                 <tr>
-                                    <th data-field="id">上游2</th>
-                                    <th>上游1</th>
+                                    <th data-field="id">上游</th>
                                     <th data-sortable="true">產業</th>
-                                    <th>下游1</th>
-                                    <th>下游2</th>
+                                    <th>下游</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for industry in industries %}
+                                {% for search_row in search_result %}
                                 <tr>
                                     <td>
-                                        <select class="form-select" aria-label="upstream 2 select option" name="{{ industry.id }}_upstream_2">
-                                            {% if industry.upstream_2 is none or industry.upstream_2 == '' %}
+                                        <select class="form-select" aria-label="upstream 1 select option" name="{{ search_row.id }}_upstream">
+                                            {% if search_row.upstream is none or search_row.upstream == '' %}
                                             <option selected value=""></option>
-                                                {% for industry_select in industries_all %}
-                                                <option value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% for all_row in business_code_all %}
+                                                <option value="{{ search_row.id }}-upstream-{{ all_row.code }}">{{ all_row.name_ch }}</option>
                                                 {% endfor %}
                                             {% else %}
-                                                {% for industry_select in industries_all %}
-                                                    {% if industry.upstream_2 == industry_select.code %}
-                                                    <option selected value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% for all_row in business_code_all %}
+                                                    {% if search_row.upstream == all_row.code %}
+                                                    <option selected value="{{ search_row.id }}-upstream-{{ all_row.code }}">{{ all_row.name_ch }}</option>
                                                     {% endif %}
-                                                    <option value="{{ industry.id }}-upstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                    <option value="{{ search_row.id }}-upstream-{{ all_row.code }}">{{ all_row.name_ch }}</option>
                                                 {% endfor %}
                                             {% endif %}
                                         </select>
                                     </td>
+                                    <td>{{ search_row.name_ch }}</td>
                                     <td>
-                                        <select class="form-select" aria-label="upstream 1 select option" name="{{ industry.id }}_upstream_1">
-                                            {% if industry.upstream_1 is none or industry.upstream_1 == '' %}
+                                        <select class="form-select" aria-label="downstream 1 select option" name="{{ search_row.id }}_downstream">
+                                            {% if search_row.downstream is none or search_row.downstream == '' %}
                                             <option selected value=""></option>
-                                                {% for industry_select in industries_all %}
-                                                <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% for all_row in business_code_all %}
+                                                <option value="{{ search_row.id }}-downstream-{{ all_row.code }}">{{ all_row.name_ch }}</option>
                                                 {% endfor %}
                                             {% else %}
-                                                {% for industry_select in industries_all %}
-                                                    {% if industry.upstream_1 == industry_select.code %}
-                                                    <option selected value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                {% for all_row in business_code_all %}
+                                                    {% if search_row.downstream == all_row.code %}
+                                                    <option selected value="{{ search_row.id }}-downstream-{{ all_row.code }}">{{ all_row.name_ch }}</option>
                                                     {% endif %}
-                                                    <option value="{{ industry.id }}-upstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </select>
-                                    </td>
-                                    <td>{{ industry.name }}</td>
-                                    <td>
-                                        <select class="form-select" aria-label="downstream 1 select option" name="{{ industry.id }}_downstream_1">
-                                            {% if industry.downstream_1 is none or industry.downstream_1 == '' %}
-                                            <option selected value=""></option>
-                                                {% for industry_select in industries_all %}
-                                                <option value="{{ industry.id }}-downstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                {% endfor %}
-                                            {% else %}
-                                                {% for industry_select in industries_all %}
-                                                    {% if industry.downstream_1 == industry_select.code %}
-                                                    <option selected value="{{ industry.id }}-downstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                    {% endif %}
-                                                    <option value="{{ industry.id }}-downstream_1-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select" aria-label="downstream 2 select option" name="{{ industry.id }}_downstream_2">
-                                            {% if industry.downstream_2 is none or industry.downstream_2 == '' %}
-                                            <option selected value=""></option>
-                                                {% for industry_select in industries_all %}
-                                                <option value="{{ industry.id }}-downstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                {% endfor %}
-                                            {% else %}
-                                                {% for industry_select in industries_all %}
-                                                    {% if industry.downstream_2 == industry_select.code %}
-                                                    <option selected value="{{ industry.id }}-downstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
-                                                    {% endif %}
-                                                    <option value="{{ industry.id }}-downstream_2-{{ industry_select.code }}">{{ industry_select.name }}</option>
+                                                    <option value="{{ search_row.id }}-downstream-{{ all_row.code }}">{{ all_row.name_ch }}</option>
                                                 {% endfor %}
                                             {% endif %}
                                         </select>

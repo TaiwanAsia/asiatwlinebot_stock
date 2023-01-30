@@ -13,7 +13,7 @@ from models import user_favorite_company_model, company_news_model, dataset_day_
 from models import company_model, industry_model, business_code_model
 import api
 import re, _thread, copy
-import json, sys,os
+import json, sys,os, time
 import pandas as pd
 from common.logging import setup_logging
 import logging
@@ -130,33 +130,29 @@ def upstream_downstream():
     
     if request.method == 'POST' and request.form.get('keyword') != '':
         keyword = request.form.get('keyword')
-        sql = 'SELECT * FROM `industry` ORDER BY CONVERT(`name` using big5) ASC'.format("%%" + keyword + "%%")
-        industries_all = db.engine.execute(sql).fetchall()
-        sql = 'SELECT * FROM `industry` WHERE `name` LIKE "{0}" ORDER BY CONVERT(`name` using big5) ASC'.format("%%" + keyword + "%%")
-        industries = db.engine.execute(sql).fetchall()
+        sql = 'SELECT * FROM `business_code` ORDER BY CONVERT(`name_ch` using big5) ASC'.format("%%" + keyword + "%%")
+        business_code_all = db.engine.execute(sql).fetchall()
+        sql = 'SELECT * FROM `business_code` WHERE `name_ch` LIKE "{0}" ORDER BY CONVERT(`name_ch` using big5) ASC'.format("%%" + keyword + "%%")
+        search_result = db.engine.execute(sql).fetchall()
         updates = []
-        for industry in industries:
-            upstream_1   = request.form.get(f'{industry.id}_upstream_1')
-            upstream_2   = request.form.get(f'{industry.id}_upstream_2')
-            downstream_1 = request.form.get(f'{industry.id}_downstream_1')
-            downstream_2 = request.form.get(f'{industry.id}_downstream_2')
-
-            if upstream_1:
-                updates.append(upstream_1)
-            if upstream_2:
-                updates.append(upstream_2)
-            if downstream_1:
-                updates.append(downstream_1)
-            if downstream_2:
-                updates.append(downstream_2)
+        for industry in search_result:
+            upstream   = request.form.get(f'{industry.id}_upstream')
+            downstream = request.form.get(f'{industry.id}_downstream')
+            if upstream:
+                updates.append(upstream)
+            if downstream:
+                updates.append(downstream)
 
         for row in updates:
             id, stream, stream_id = row.split("-")
-            industry_model.Industry.update_stream(id, stream, stream_id)
+            business_code_model.Business_code.update_stream(id, stream, stream_id)
+            # industry_model.Industry.update_stream(id, stream, stream_id)
 
-        industries = db.engine.execute(sql).fetchall()
+        search_result = db.engine.execute(sql).fetchall()
+
+        print(search_result)
             
-        return render_template("upstream_downstream.html", industries=industries, industries_all=industries_all, len=len(industries))
+        return render_template("upstream_downstream.html", search_result=search_result, business_code_all=business_code_all, len=len(search_result))
         
     return render_template("upstream_downstream.html")
 
@@ -165,7 +161,35 @@ def get_industries():
     industries = industry_model.Industry.query.limit(100).all()
     json_industries = json.dumps(industries)
     return json_industries
+
+### 從ronny api更新公司營業項目代碼
+@app.route("/update_busienss_code/<int:capital>", methods=['GET'])
+def update_business_code(capital):
+    filter_company_type  = company_model.Company.company_type == '股份有限公司'
+    filter_capital       = company_model.Company.capital > capital
+    companies = company_model.Company.query.filter(filter_company_type, filter_capital).offset(6490).all()
+    print('Captial: ', capital)
+    print('Count: ', len(companies))
+    print('company[0]: ', companies[0].business_code)
+    # fail = []
+    count = 0
+    for company in companies:
+        if company.business_code is not None:
+            continue
+        else:
+            count += 1
+            time.sleep(1)
+            result = company.update_business_code()
+            if result != 'success':
+                # fail.append([company.uniid, result])
+                print(company.id, " Fail     ", "count: ", count)
+            else:
+                print(company.id, " Success  ", "count: ", count)
+            
+
+    # print(fail)
     
+    return render_template("home.html", message='更新成功')
 
     
 
@@ -325,6 +349,9 @@ def handle_postback(event):
     if action == 'business_stream':
         code = param[1]
         business_code = business_code_model.Business_code.get_by_code(code)
+        if business_code is None:
+            line_bot_api.reply_message(reply_token, TextSendMessage(text="此功能施工中 :)"))
+            return
         companies = company_model.Company.find_by_business_code(code)
         multiple_result_output(reply_token, business_code.name_ch, companies)
 
@@ -421,7 +448,7 @@ def search_output(user_id, reply_token, company):
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{business_code_info_1.code}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
+        TradeinfoFlexMessage['footer']['contents'][2]['contents'][3]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
 
         # 自選股
         added_already = False
@@ -665,7 +692,7 @@ def company_stock_output(reply_token, user_id, company_stock, company):
     TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{business_code_info_1.code}"
     TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
     TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
-    TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
+    TradeinfoFlexMessage['footer']['contents'][2]['contents'][3]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
     line_bot_api.reply_message(reply_token, FlexSendMessage('Trade Info', TradeinfoFlexMessage))
 
 
@@ -725,6 +752,15 @@ def add_company(uniid, data):
     company.save()
     company.update_business_code()
     return company
+
+
+# ### 從ronny api更新公司營業項目代碼
+# def update_company_business_code(capital=100000000):
+#     companies = company_model.Company.find_by_company_type('股份有限公司')
+#     print('Count: ', len(companies))
+
+
+
         
     
 
@@ -733,15 +769,27 @@ import os
 if __name__ == "__main__":
 
     # Debug模式將無條件執行爬蟲
-    debug = False
+    debug_mode = False
     if len(sys.argv) > 1:
-        if sys.argv[1] is not False:
-            debug = sys.argv[1]
+        if sys.argv[1] is not False and isinstance(sys.argv[1], int):
+            debug_mode = sys.argv[1]
+        # else:
+        #     method_name = sys.argv[1]
+        #     if method_name == 'update_company_business_code':
+        #         try:
+        #             update_company_business_code(sys.argv[2])
+        #         except IndexError:
+        #             print("少輸入參數: 資本額下限")
+        #             print("--------\n終止程序\n--------")
+        #             exit(0)
+
+
+    
 
     # 爬蟲執行時間
     target_time = [13, 30]
     
-    _thread.start_new_thread(crawler, (target_time[0], target_time[1], db, debug, app))
+    _thread.start_new_thread(crawler, (target_time[0], target_time[1], db, debug_mode, app))
     port = int(os.environ.get('PORT', config.port))
     app.run(host='0.0.0.0', port=port, debug=True)
     
