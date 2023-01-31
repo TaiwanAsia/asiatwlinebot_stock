@@ -85,7 +85,7 @@ CREATE TABLE `company_news` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   KEY `keyword` (`keyword`)
-) ENGINE=InnoDB AUTO_INCREMENT=224 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=225 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -140,64 +140,44 @@ CREATE TABLE `industry` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `notstock`
+-- Table structure for table `log`
 --
 
-DROP TABLE IF EXISTS `notstock`;
+DROP TABLE IF EXISTS `log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `notstock` (
+CREATE TABLE `log` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `notstock_code` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `notstock_name` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `listing_date` date NOT NULL,
-  `category` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `updated_at` datetime NOT NULL,
+  `user` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message_content` text COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=338 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用戶使用紀錄';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `stock`
+-- Table structure for table `user`
 --
 
-DROP TABLE IF EXISTS `stock`;
+DROP TABLE IF EXISTS `user`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `stock` (
+CREATE TABLE `user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `stock_code` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `stock_name` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `stock_full_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `stock_uniid` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `listing_date` date DEFAULT NULL,
-  `stock_type` tinyint(1) DEFAULT NULL COMMENT '1=>未上市,2=>上市櫃',
-  `category` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `stock_name` (`stock_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=1332 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stock_news`
---
-
-DROP TABLE IF EXISTS `stock_news`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `stock_news` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `stock_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `stock_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `stock_news_title` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  `stock_news_content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `stock_news_url` varchar(225) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `stock_news_date` varchar(45) COLLATE utf8_bin DEFAULT NULL,
+  `user_id` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_member` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'no',
+  `is_admin` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'no',
+  `text_reply` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'on' COMMENT '文字自動回覆開關',
+  `image_reply` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'on' COMMENT '圖片自動回覆開關',
+  `file_reply` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'on' COMMENT '文件自動回覆開關',
+  `join_member_time` datetime DEFAULT NULL COMMENT '加入會員時間',
+  `last_message_time` datetime DEFAULT NULL COMMENT '最後發送訊息時間',
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `id_UNIQUE` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=805 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  UNIQUE KEY `user_id_UNIQUE` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='所有用戶';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -243,4 +223,4 @@ CREATE TABLE `website` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-01-17 19:26:07
+-- Dump completed on 2023-01-31 16:04:32

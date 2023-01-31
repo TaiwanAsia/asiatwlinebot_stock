@@ -2,19 +2,14 @@ from flask import Flask, request, abort, render_template
 from linebot import (LineBotApi, WebhookHandler)
 from linebot.exceptions import (InvalidSignatureError)
 from linebot.models import *
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import exc
 from werkzeug.utils import secure_filename
-from datetime import datetime
 from crawler import crawler, parse_cnyesNews
 from models.shared_db_model import db
-from models.stock_model import Stock
 from models import user_favorite_company_model, company_news_model, dataset_day_model
 from models import company_model, industry_model, business_code_model, user_model, log_model
 import api
 import re, _thread, copy
 import json, sys,os, time
-import pandas as pd
 from common.logging import setup_logging
 import logging
 from common.common import check_user_uploads_folder, get_user, add_log
