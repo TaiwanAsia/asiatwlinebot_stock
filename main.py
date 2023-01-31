@@ -10,13 +10,14 @@ from crawler import crawler, parse_cnyesNews
 from models.shared_db_model import db
 from models.stock_model import Stock
 from models import user_favorite_company_model, company_news_model, dataset_day_model
-from models import company_model, industry_model, business_code_model
+from models import company_model, industry_model, business_code_model, user_model, log_model
 import api
 import re, _thread, copy
 import json, sys,os, time
 import pandas as pd
 from common.logging import setup_logging
 import logging
+from common.common import check_user_uploads_folder, get_user, add_log
 
 
 app = Flask(__name__)
@@ -41,9 +42,6 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 1
 }
 
-
-# db = SQLAlchemy(app)
-
 db.init_app(app)
 
 
@@ -54,80 +52,8 @@ Weblogger = logging.getLogger(WebloggerName)
 
 
 
-
-@app.route("/home", defaults={'message':''}, methods=['GET', 'POST'])
-def home(message):
-    if request.method == 'POST':
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-            # filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'BGMOPEN1.csv'))
-            result = bgmopen_operator()
-            if result is False:
-                return render_template("home.html", message='檔案上傳失敗')
-            return render_template("home.html", message='成功!!')
-        else:
-            return render_template("home.html", message='檔案格式不符合')
-    return render_template("home.html", message=message)
-
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
-
-def bgmopen_operator():
-    usecols = ['統一編號', '總機構統一編號', '營業人名稱', '資本額', '設立日期', '組織別名稱',
-        '行業代號', '名稱', '行業代號1', '名稱1', '行業代號2', '名稱2', '行業代號3', '名稱3']
-    data_type = {"統一編號": str, "總機構統一編號": str, '資本額': str, "設立日期": str, "行業代號": str
-    , "行業代號1": str, "行業代號2": str, "行業代號3": str}
-    pd_bgmopen = pd.read_csv("uploads/BGMOPEN1.csv", usecols=usecols, dtype=data_type)
-    pd_bgmopen.columns = ['uniid', 'top_uniid', 'business_entity', 'capital', 'establishment_date', 'company_type',
-        'industrial_classification', 'industrial_name', 'industrial_classification_1', 'industrial_name_1', 'industrial_classification_2', 'industrial_name_2',
-        'industrial_classification_3', 'industrial_name_3']
-    char_substitute = {
-        b'\xf0\xa3\x87\x93' : '鼎',
-        b'\xf0\xa7\x99\x97' : '佑',
-        b'\xf0\xa5\xb4\x8a' : '𥴊'
-    }
-    for i in range(0,16):
-        if i == 15:
-            df = pd_bgmopen.iloc[100000*i : ]
-        else:
-            df = pd_bgmopen.iloc[1+100000*i : 100000*(1+i)]
-        print(f'Data:  ',(1+100000*i) , '-', (100000*(1+i)))
-        Weblogger.info(f'Data:  ',(1+100000*i) , '-', (100000*(1+i)))
-        drop_indices = []
-        for index, row in df.iterrows():
-            if row['company_type'] in ['獨資', '合夥', '其他', '合作社']:
-                drop_indices.append(index)
-            for char_index, char in enumerate(row['business_entity']):
-                if len(char.encode('utf-8')) > 3:
-                    if char.encode('utf-8') in char_substitute:
-                        replace = char_substitute[char.encode('utf-8')]
-                    else:
-                        replace = 'X'
-                        # print(f'[{index}]-encode : ', row['uniid'], row['business_entity'], char.encode('utf-8'))
-                    pd_bgmopen.loc[index, "business_entity"] = pd_bgmopen.iloc[index]['business_entity'][:char_index] + replace + pd_bgmopen.iloc[index]['business_entity'][char_index+1:]
-        df.drop(drop_indices, axis=0, inplace=True)
-
-        try:
-            df.to_sql('company', db.engine, if_exists='append', index=False, chunksize=5000)
-        except (exc.IntegrityError, exc.DataError) as e:
-            Weblogger.error('Insert db.  數據錯誤')
-            Weblogger.error(e)
-            return False
-        except Exception as e:
-            Weblogger.error('Insert db.  未知錯誤')
-            Weblogger.error(e)
-            return False
-        else:
-            Weblogger.info(f'Insert db  Successfully.')
-    return False
-
 @app.route("/upstream_downstream", methods=['GET', 'POST'])
 def upstream_downstream():
-    
     if request.method == 'POST' and request.form.get('keyword') != '':
         keyword = request.form.get('keyword')
         sql = 'SELECT * FROM `business_code` ORDER BY CONVERT(`name_ch` using big5) ASC'.format("%%" + keyword + "%%")
@@ -142,18 +68,11 @@ def upstream_downstream():
                 updates.append(upstream)
             if downstream:
                 updates.append(downstream)
-
         for row in updates:
             id, stream, stream_id = row.split("-")
             business_code_model.Business_code.update_stream(id, stream, stream_id)
-            # industry_model.Industry.update_stream(id, stream, stream_id)
-
         search_result = db.engine.execute(sql).fetchall()
-
-        print(search_result)
-            
         return render_template("upstream_downstream.html", search_result=search_result, business_code_all=business_code_all, len=len(search_result))
-        
     return render_template("upstream_downstream.html")
 
 @app.route("/get_industries", methods=['GET'])
@@ -168,10 +87,6 @@ def update_business_code(capital):
     filter_company_type  = company_model.Company.company_type == '股份有限公司'
     filter_capital       = company_model.Company.capital > capital
     companies = company_model.Company.query.filter(filter_company_type, filter_capital).offset(6490).all()
-    print('Captial: ', capital)
-    print('Count: ', len(companies))
-    print('company[0]: ', companies[0].business_code)
-    # fail = []
     count = 0
     for company in companies:
         if company.business_code is not None:
@@ -181,14 +96,9 @@ def update_business_code(capital):
             time.sleep(1)
             result = company.update_business_code()
             if result != 'success':
-                # fail.append([company.uniid, result])
                 print(company.id, " Fail     ", "count: ", count)
             else:
                 print(company.id, " Success  ", "count: ", count)
-            
-
-    # print(fail)
-    
     return render_template("home.html", message='更新成功')
 
     
@@ -216,48 +126,112 @@ def callback():
         abort(400)
     return 'OK'
 
+# Message event: File處理
+@handler.add(MessageEvent, message=FileMessage)
+def handler_message(event):
+    user = get_user(event.source.user_id)
+    if user.file_reply == 'off':
+        return
+    else:
+        add_log(user, 'upload file', str(event.message))
+        content = line_bot_api.get_message_content(event.message.id)
+        check_user_uploads_folder(user.user_id)
+        path = './uploads/' + user.user_id + '/' + event.message.file_name
+        if os.path.exists(path):
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="此檔名已存在。"))
+            raise FileExistsError("此檔名已存在。")
+        try:
+            with open(path, 'wb') as fd:
+                for chunk in content.iter_content():
+                    fd.write(chunk)
+        except Exception as e:
+            print('發生錯誤', e)
+        finally:
+            print("儲存結束")
+        return
+
+# Message event: Image處理
+@handler.add(MessageEvent, message=ImageMessage)
+def handle_message(event):
+    user = get_user(event.source.user_id)
+    if user.image_reply == 'off':
+        return
+    else:
+        add_log(user, 'upload file', str(event.message))
+        content = line_bot_api.get_message_content(event.message.id)
+        check_user_uploads_folder(user.user_id)
+        path = './uploads/' + user.user_id + '/' + event.message.id + '.png'
+        try:
+            with open(path, 'wb') as fd:
+                for chunk in content.iter_content():
+                    fd.write(chunk)
+        except Exception as e:
+            print('發生錯誤', e)
+        finally:
+            print("儲存結束")
+        return
+
 
 # Message event: Text處理
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    message_type = event.message.type
-    user_id = event.source.user_id
+    user = get_user(event.source.user_id)
+    user_id = user.user_id
     reply_token = event.reply_token
     message = event.message.text
 
-    ##### 1 使用者輸入關鍵字查詢
-    message = str(message).strip()
+    if message == '設定':
+        SettingsMessage = json.load(open('templates/settings.json', 'r', encoding='utf-8'))
+        box = SettingsMessage["body"]["contents"]
+        if user.text_reply == 'off':
+            box[0]['action']['label']       = '開啟文字訊息自動回覆'
+            box[0]['action']['data']        = 'text&on&'
+            box[0]['action']['displayText'] = '開啟文字訊息自動回覆'
+        box[0]['action']['data'] += user.user_id
+        if user.file_reply == 'off':
+            box[1]['action']['label']       = '開啟文件訊息自動儲存'
+            box[1]['action']['data']        = 'file&on&'
+            box[1]['action']['displayText'] = '開啟文件訊息自動儲存'
+        box[1]['action']['data'] += user.user_id
+        if user.image_reply == 'off':
+            box[2]['action']['label']       = '開啟圖片訊息自動儲存'
+            box[2]['action']['data']        = 'image&on&'
+            box[2]['action']['displayText'] = '開啟圖片訊息自動儲存'
+        box[2]['action']['data'] += user.user_id
+        line_bot_api.reply_message(reply_token, FlexSendMessage('Settings Info', SettingsMessage))
+        return
 
-    pattern = re.compile(r'^[-+]?[-0-9]\d*\.\d*|[-+]?\.?[0-9]\d*$') # 正規表達過濾出純數字
 
-    ##### 1.1 關鍵字為INT
-    if pattern.match(message):
-        if len(message) == 8:
-            uniid = message
-            company = company_model.Company.find_by_uniid(uniid)
-            if company is None:
-                company_api_data = api.get_company_by_uniid(uniid)
-                if company_api_data:
-                    company = add_company(uniid, company_api_data)
-                else:
-                    line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
-                    return
-            search_output(user_id, reply_token, company)
-        else:
-            line_bot_api.reply_message(reply_token, TextSendMessage(text="給我8位數的數字，讓我以統一編號替您查詢。"))
-
-    ##### 1.2 關鍵字非INT
+    if user.text_reply == 'off':
+        return
     else:
-        keyword = message
-        companies = company_model.Company.find_by_business_entity_like_search(keyword)
-        if len(companies) == 0:
-            line_bot_api.reply_message(reply_token, (TextSendMessage(text="查無此公司。"),TextSendMessage(text="請再確認一次或試試統一編號查詢。")))
-            return
-        if len(companies) > 1:
-            multiple_result_output(reply_token, keyword, companies)
-            return
-
-        search_output(user_id, reply_token, companies[0])
+        # 使用者輸入關鍵字查詢
+        message = str(message).strip()
+        pattern = re.compile(r'^[-+]?[-0-9]\d*\.\d*|[-+]?\.?[0-9]\d*$') # 正規表達過濾出純數字
+        if pattern.match(message):
+            if len(message) == 8:
+                uniid = message
+                company = company_model.Company.find_by_uniid(uniid)
+                if company is None:
+                    company_api_data = api.get_company_by_uniid(uniid)
+                    if company_api_data:
+                        company = add_company(uniid, company_api_data)
+                    else:
+                        line_bot_api.reply_message(reply_token, TextSendMessage(text="查無此公司，請再確認一次。"))
+                        return
+                search_output(user_id, reply_token, company)
+            else:
+                line_bot_api.reply_message(reply_token, TextSendMessage(text="給我8位數的數字，讓我以統一編號替您查詢。"))
+        else:
+            keyword = message
+            companies = company_model.Company.find_by_business_entity_like_search(keyword)
+            if len(companies) == 0:
+                line_bot_api.reply_message(reply_token, (TextSendMessage(text="查無此公司。"),TextSendMessage(text="請再確認一次或試試統一編號查詢。")))
+                return
+            if len(companies) > 1:
+                multiple_result_output(reply_token, keyword, companies)
+                return
+            search_output(user_id, reply_token, companies[0])
 
 
 @handler.add(PostbackEvent)
@@ -275,13 +249,13 @@ def handle_postback(event):
         search_output(user_id, reply_token, company) # 輸出查詢結果
 
     ##### 2.2 我想買、我想賣 TODO
-    if action == 'iwanttrade':
+    elif action == 'iwanttrade':
         user         = str(ts.split("&")[1])
         act          = str(ts.split("&")[2])
         company_name = ts.split("&")[3]
 
     ##### 2.3 加入自選股
-    if action == 'addFavorite':
+    elif action == 'addFavorite':
         company_id = param[1]
         favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
         if favorite_company is None: # 首次新增自選股，建立空資料
@@ -306,7 +280,7 @@ def handle_postback(event):
         favorite_output(reply_token, favorite_company.company_ids)
 
     ##### 2.4 移出自選股
-    if action == 'delFavorite':
+    elif action == 'delFavorite':
         company_id = param[1]
         favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
         favorite_company_list = favorite_company.company_ids.split(",")
@@ -321,12 +295,33 @@ def handle_postback(event):
         favorite_output(reply_token, favorite_company.company_ids)
 
     ##### 2.5 檢視自選股
-    if action == 'viewFavorite':
+    elif action == 'viewFavorite':
         favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
         if favorite_company is None:
             line_bot_api.reply_message(reply_token, TextSendMessage(text="您尚未加入自選股。"))
             return
         favorite_output(reply_token, favorite_company.company_ids)
+
+    elif action == 'text':
+        on_off = param[1]
+        user = user_model.User.get_by_user_id(param[2])
+        user.turn_on_off_text_reply(on_off)
+        text = '文字訊息已關閉自動回覆。' if on_off == 'off' else '文字訊息已開啟自動回覆。'
+        line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
+    
+    elif action == 'file':
+        on_off = param[1]
+        user = user_model.User.get_by_user_id(param[2])
+        user.turn_on_off_file_reply(on_off)
+        text = '文件訊息已關閉自動儲存。' if on_off == 'off' else '文件訊息已開啟自動儲存。'
+        line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
+    
+    elif action == 'image':
+        on_off = param[1]
+        user = user_model.User.get_by_user_id(param[2])
+        user.turn_on_off_image_reply(on_off)
+        text = '圖片訊息已關閉自動回覆。' if on_off == 'off' else '圖片訊息已開啟自動回覆。'
+        line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
 
     ##### [棄用]: 登記事業並非系統所需
     # 檢視產業鏈其他公司
