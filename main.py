@@ -433,12 +433,15 @@ def search_output(user_id, reply_token, company):
         business_code = company.get_business_code()
         business_code_info_1 = business_code_model.Business_code.get_by_code(business_code[0])
         business_code_info_2 = business_code_model.Business_code.get_by_code(business_code[1])
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{business_code_info_1.upstream if business_code_info_1.upstream else -1}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {business_code_info_1.name_ch}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{business_code_info_1.code}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][3]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
+        if business_code_info_1 is not None:
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{business_code_info_1.upstream if business_code_info_1.upstream else -1}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {business_code_info_1.name_ch}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{business_code_info_1.code}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][3]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
+        if business_code_info_2 is not None:
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
+        
 
         # 自選股
         added_already = False
