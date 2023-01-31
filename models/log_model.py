@@ -4,7 +4,7 @@ class Log(db.Model):
     __tablename__ = 'log'
 
     id              = db.Column(db.Integer, primary_key=True)
-    user            = db.Column(db.String(45), db.ForeignKey('user.id'))
+    chatroom        = db.Column(db.String(100))
     message_type    = db.Column(db.String(20), nullable=False)
     message_content = db.Column(db.Text, nullable=True)
     created_at      = db.Column(db.DateTime, nullable=True)
