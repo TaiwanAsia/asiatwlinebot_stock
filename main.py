@@ -2,19 +2,14 @@ from flask import Flask, request, abort, render_template
 from linebot import (LineBotApi, WebhookHandler)
 from linebot.exceptions import (InvalidSignatureError)
 from linebot.models import *
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import exc
 from werkzeug.utils import secure_filename
-from datetime import datetime
 from crawler import crawler, parse_cnyesNews
 from models.shared_db_model import db
-from models.stock_model import Stock
 from models import user_favorite_company_model, company_news_model, dataset_day_model
 from models import company_model, industry_model, business_code_model, user_model, log_model
 import api
 import re, _thread, copy
 import json, sys,os, time
-import pandas as pd
 from common.logging import setup_logging
 import logging
 from common.common import check_user_uploads_folder, get_user, add_log
@@ -438,12 +433,15 @@ def search_output(user_id, reply_token, company):
         business_code = company.get_business_code()
         business_code_info_1 = business_code_model.Business_code.get_by_code(business_code[0])
         business_code_info_2 = business_code_model.Business_code.get_by_code(business_code[1])
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{business_code_info_1.upstream if business_code_info_1.upstream else -1}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {business_code_info_1.name_ch}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{business_code_info_1.code}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
-        TradeinfoFlexMessage['footer']['contents'][2]['contents'][3]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
+        if business_code_info_1 is not None:
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{business_code_info_1.upstream if business_code_info_1.upstream else -1}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['label'] += f" - {business_code_info_1.name_ch}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{business_code_info_1.code}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][3]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
+        if business_code_info_2 is not None:
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
+            TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
+        
 
         # 自選股
         added_already = False
