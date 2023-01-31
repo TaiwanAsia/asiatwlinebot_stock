@@ -6,13 +6,13 @@ from werkzeug.utils import secure_filename
 from crawler import crawler, parse_cnyesNews
 from models.shared_db_model import db
 from models import user_favorite_company_model, company_news_model, dataset_day_model
-from models import company_model, industry_model, business_code_model, user_model, log_model
+from models import company_model, industry_model, business_code_model, user_model, group_model
 import api
 import re, _thread, copy
 import json, sys,os, time
 from common.logging import setup_logging
 import logging
-from common.common import check_user_uploads_folder, get_user, add_log
+from common.common import check_chatroom_uploads_folder, get_user, get_group, add_log
 
 
 app = Flask(__name__)
@@ -125,13 +125,21 @@ def callback():
 @handler.add(MessageEvent, message=FileMessage)
 def handler_message(event):
     user = get_user(event.source.user_id)
-    if user.file_reply == 'off':
+    if event.source.type == 'group':
+        group = get_group(event.source.group_id)
+        chatroom    = group
+        chatroom_id = group.group_id
+    else:
+        chatroom    = user
+        chatroom_id = user.user_id
+        
+    if chatroom.file_reply == 'off':
         return
     else:
-        add_log(user, 'upload file', str(event.message))
+        add_log(chatroom, 'upload file', str(event.message))
         content = line_bot_api.get_message_content(event.message.id)
-        check_user_uploads_folder(user.user_id)
-        path = './uploads/' + user.user_id + '/' + event.message.file_name
+        check_chatroom_uploads_folder(chatroom_id)
+        path = './uploads/' + chatroom_id + '/' + event.message.file_name
         if os.path.exists(path):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="此檔名已存在。"))
             raise FileExistsError("此檔名已存在。")
@@ -149,13 +157,20 @@ def handler_message(event):
 @handler.add(MessageEvent, message=ImageMessage)
 def handle_message(event):
     user = get_user(event.source.user_id)
-    if user.image_reply == 'off':
+    if event.source.type == 'group':
+        group = get_group(event.source.group_id)
+        chatroom    = group
+        chatroom_id = group.group_id
+    else:
+        chatroom    = user
+        chatroom_id = user.user_id
+    if chatroom.file_reply == 'off':
         return
     else:
-        add_log(user, 'upload file', str(event.message))
+        add_log(chatroom, 'upload file', str(event.message))
         content = line_bot_api.get_message_content(event.message.id)
-        check_user_uploads_folder(user.user_id)
-        path = './uploads/' + user.user_id + '/' + event.message.id + '.png'
+        check_chatroom_uploads_folder(chatroom_id)
+        path = './uploads/' + chatroom_id + '/' + event.message.id + '.png'
         try:
             with open(path, 'wb') as fd:
                 for chunk in content.iter_content():
@@ -174,30 +189,36 @@ def handle_message(event):
     user_id = user.user_id
     reply_token = event.reply_token
     message = event.message.text
-
+    if event.source.type == 'group':
+        group = get_group(event.source.group_id)
+        chatroom    = group
+        chatroom_id = group.group_id
+    else:
+        chatroom    = user
+        chatroom_id = user.user_id
     if message == '設定':
         SettingsMessage = json.load(open('templates/settings.json', 'r', encoding='utf-8'))
         box = SettingsMessage["body"]["contents"]
-        if user.text_reply == 'off':
+        if chatroom.text_reply == 'off':
             box[0]['action']['label']       = '開啟文字訊息自動回覆'
             box[0]['action']['data']        = 'text&on&'
             box[0]['action']['displayText'] = '開啟文字訊息自動回覆'
-        box[0]['action']['data'] += user.user_id
-        if user.file_reply == 'off':
+        box[0]['action']['data'] += chatroom_id
+        if chatroom.file_reply == 'off':
             box[1]['action']['label']       = '開啟文件訊息自動儲存'
             box[1]['action']['data']        = 'file&on&'
             box[1]['action']['displayText'] = '開啟文件訊息自動儲存'
-        box[1]['action']['data'] += user.user_id
-        if user.image_reply == 'off':
+        box[1]['action']['data'] += chatroom_id
+        if chatroom.image_reply == 'off':
             box[2]['action']['label']       = '開啟圖片訊息自動儲存'
             box[2]['action']['data']        = 'image&on&'
             box[2]['action']['displayText'] = '開啟圖片訊息自動儲存'
-        box[2]['action']['data'] += user.user_id
+        box[2]['action']['data'] += chatroom_id
         line_bot_api.reply_message(reply_token, FlexSendMessage('Settings Info', SettingsMessage))
         return
 
 
-    if user.text_reply == 'off':
+    if chatroom.text_reply == 'off':
         return
     else:
         # 使用者輸入關鍵字查詢
@@ -299,22 +320,34 @@ def handle_postback(event):
 
     elif action == 'text':
         on_off = param[1]
-        user = user_model.User.get_by_user_id(param[2])
-        user.turn_on_off_text_reply(on_off)
+        if param[2][0] == 'C':
+            group = group_model.Group.get_by_group_id(param[2])
+            group.turn_on_off_text_reply(on_off)
+        else:
+            user = user_model.User.get_by_user_id(param[2])
+            user.turn_on_off_text_reply(on_off)
         text = '文字訊息已關閉自動回覆。' if on_off == 'off' else '文字訊息已開啟自動回覆。'
         line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
     
     elif action == 'file':
         on_off = param[1]
-        user = user_model.User.get_by_user_id(param[2])
-        user.turn_on_off_file_reply(on_off)
+        if param[2][0] == 'C':
+            group = group_model.Group.get_by_group_id(param[2])
+            group.turn_on_off_file_reply(on_off)
+        else:
+            user = user_model.User.get_by_user_id(param[2])
+            user.turn_on_off_file_reply(on_off)
         text = '文件訊息已關閉自動儲存。' if on_off == 'off' else '文件訊息已開啟自動儲存。'
         line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
     
     elif action == 'image':
         on_off = param[1]
-        user = user_model.User.get_by_user_id(param[2])
-        user.turn_on_off_image_reply(on_off)
+        if param[2][0] == 'C':
+            group = group_model.Group.get_by_group_id(param[2])
+            group.turn_on_off_image_reply(on_off)
+        else:
+            user = user_model.User.get_by_user_id(param[2])
+            user.turn_on_off_image_reply(on_off)
         text = '圖片訊息已關閉自動回覆。' if on_off == 'off' else '圖片訊息已開啟自動回覆。'
         line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
 
