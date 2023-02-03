@@ -214,7 +214,11 @@ def handle_message(event):
             box[2]['action']['data']        = 'image&on&'
             box[2]['action']['displayText'] = '開啟圖片訊息自動儲存'
         box[2]['action']['data'] += chatroom_id
-        line_bot_api.reply_message(reply_token, FlexSendMessage('Settings Info', SettingsMessage))
+        line_bot_api.reply_message(reply_token, FlexSendMessage('Settings Info', SettingsMessage, quick_reply=QuickReply(
+            items=[
+                QuickReplyButton(action=MessageAction(label='設定', text='設定'))
+            ]
+        )))
         return
 
 
