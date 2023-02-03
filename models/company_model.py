@@ -38,7 +38,7 @@ class Company(db.Model):
         self.business_code = business_code
 
     def __repr__(self):
-        return '<Company %r  %r %r %r>' % (self.business_entity, self.uniid, self.company_type, self.industrial_name)
+        return '<Company %r  %r %r %r %r>' % (self.business_entity, self.uniid, self.top_uniid, self.company_type, self.industrial_name)
 
     def save(self):
         db.session.add(self)
@@ -77,11 +77,12 @@ class Company(db.Model):
         # 優先選擇Dataset_day符合的公司
         cand = Dataset_day.find_by_company_name(business_entity)
         if cand is not None:
-            filter = Company.business_entity.like('%{}%'.format(cand.company_name.split('\xa0')[0]))
-            query  = Company.query.filter(filter)
+            name_filter = Company.business_entity.like('%{}%'.format(cand.company_name.split('\xa0')[0]))
         else:
-            filter = Company.business_entity.like('%{}%'.format(business_entity)) 
-            query  = Company.query.filter(filter)
+            name_filter = Company.business_entity.like('%{}%'.format(business_entity))
+        # 過濾掉子公司
+        topuniid_filter = Company.top_uniid.is_(None)
+        query  = Company.query.filter(topuniid_filter, name_filter)
         return query.all()
 
     def get_business_code(self) -> str:
