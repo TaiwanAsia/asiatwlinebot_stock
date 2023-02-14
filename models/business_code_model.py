@@ -23,3 +23,8 @@ class Business_code(db.Model):
     def update_stream(id, stream, stream_id):
         Business_code.query.filter(Business_code.id == id).update({stream : stream_id})
         db.session.commit()
+
+    def get_by_chinese_name(keyword):
+        name_filter = Business_code.name_ch.like('%{}%'.format(keyword))
+        query = Business_code.query.filter(name_filter)
+        return query.all()
