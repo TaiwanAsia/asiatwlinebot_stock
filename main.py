@@ -1,4 +1,4 @@
-from flask import Flask, request, abort, render_template
+from flask import Flask, request, abort, render_template, jsonify
 from linebot import (LineBotApi, WebhookHandler)
 from linebot.exceptions import (InvalidSignatureError)
 from linebot.models import *
@@ -22,6 +22,7 @@ ALLOWED_EXTENSIONS = set(['csv'])
 
 app.config['UPLOAD_FOLDER']      = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = 300 * 1024 * 1024  # 300MB
+app.config['JSON_AS_ASCII']      = False # 避免中文亂碼
 
 # 匯入設定
 import config
@@ -67,8 +68,34 @@ def upstream_downstream():
             id, stream, stream_id = row.split("-")
             business_code_model.Business_code.update_stream(id, stream, stream_id)
         search_result = db.engine.execute(sql).fetchall()
-        return render_template("upstream_downstream.html", search_result=search_result, business_code_all=business_code_all, len=len(search_result))
+        return render_template("upstream_downstream.html", keyword=keyword, search_result=search_result, business_code_all=business_code_all, len=len(search_result))
     return render_template("upstream_downstream.html")
+
+@app.route("/search_stream", methods=["GET", "POST"])
+def search_stream():
+    if request.method == "POST":
+        result = {
+            "result": "nothing happened."
+        }
+        keyword = request.values.get('data')
+        
+        if keyword == 'null':
+            res = 'keyword is null.'
+        else:
+            res = f'keyword is {keyword}'
+
+            businesses = business_code_model.Business_code.get_by_chinese_name(keyword)
+            data = []
+            if len(businesses) > 0:
+                for business in businesses:
+                    data.append(business.name_ch)
+            result['data'] = data
+
+        result['result'] = res
+        return jsonify(result)
+    else:
+        return jsonify({"result": "NOT YES"})
+
 
 @app.route("/get_industries", methods=['GET'])
 def get_industries():
@@ -95,6 +122,10 @@ def update_business_code(capital):
             else:
                 print(company.id, " Success  ", "count: ", count)
     return render_template("home.html", message='更新成功')
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return 'This page does not exist.', 404
 
     
 
