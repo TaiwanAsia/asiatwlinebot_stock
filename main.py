@@ -811,7 +811,7 @@ def add_company(uniid, data):
     company = company_model.Company(uniid = uniid,
         business_entity=data['公司名稱'],
         capital=data['實收資本額(元)'],
-        establishment_date=year + data['核准設立日期']['month'] + data['核准設立日期']['day'],
+        establishment_date=year + str(data['核准設立日期']['month']) + str(data['核准設立日期']['day']),
         company_type=data['財政部']['組織別名稱']
         )
     company.save()
