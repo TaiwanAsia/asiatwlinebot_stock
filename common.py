@@ -1,7 +1,5 @@
 import os
-from models.user_model import User
-from models.group_model import Group
-from models.log_model import Log
+from models import User, Group, Log
 from datetime import datetime, timezone, timedelta
 
 def check_chatroom_uploads_folder(chatroom):
