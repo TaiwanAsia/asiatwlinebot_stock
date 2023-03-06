@@ -2,10 +2,8 @@ import urllib.request, time, string
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 from bs4 import BeautifulSoup
-from models.dataset_day_model import Dataset_day
-from models.company_news_model import Company_news
-from models.shared_db_model import db
-from common.logging import setup_logging
+from models import db, Dataset_day, Company_news
+from modules.logging import setup_logging
 import logging
 
 logDir = 'crawler'

@@ -2,17 +2,15 @@ from flask import Flask, request, abort, render_template, jsonify
 from linebot import (LineBotApi, WebhookHandler)
 from linebot.exceptions import (InvalidSignatureError)
 from linebot.models import *
-from werkzeug.utils import secure_filename
-from crawler import crawler, parse_cnyesNews
-from models.shared_db_model import db
-from models import user_favorite_company_model, company_news_model, dataset_day_model
-from models import company_model, industry_model, business_code_model, user_model, group_model
-import api
+from modules.crawler import crawler, parse_cnyesNews
+from models import db, User, User_favorite_company, Company, Company_news, Business_code, Dataset_day, Group
+import modules.apis as api
 import re, _thread, copy
 import json, sys,os, time
-from common.logging import setup_logging
+from modules.logging import setup_logging
 import logging
-from common.common import check_chatroom_uploads_folder, get_user, get_group, add_log
+from common import check_chatroom_uploads_folder, get_user, get_group, add_log
+from flask_migrate import Migrate
 
 
 app = Flask(__name__)
@@ -39,6 +37,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 db.init_app(app)
+Migrate(app, db)
 
 
 WeblogDir = 'web'
@@ -66,7 +65,7 @@ def upstream_downstream():
                 updates.append(downstream)
         for row in updates:
             id, stream, stream_id = row.split("-")
-            business_code_model.Business_code.update_stream(id, stream, stream_id)
+            Business_code.update_stream(id, stream, stream_id)
         search_result = db.engine.execute(sql).fetchall()
         return render_template("upstream_downstream.html", keyword=keyword, search_result=search_result, business_code_all=business_code_all, len=len(search_result))
     return render_template("upstream_downstream.html")
@@ -84,7 +83,7 @@ def search_stream():
         else:
             res = f'keyword is {keyword}'
 
-            businesses = business_code_model.Business_code.get_by_chinese_name(keyword)
+            businesses = Business_code.get_by_chinese_name(keyword)
             data = []
             if len(businesses) > 0:
                 for business in businesses:
@@ -106,9 +105,9 @@ def get_industries():
 ### 從ronny api更新公司營業項目代碼
 @app.route("/update_busienss_code/<int:capital>", methods=['GET'])
 def update_business_code(capital):
-    filter_company_type  = company_model.Company.company_type == '股份有限公司'
-    filter_capital       = company_model.Company.capital > capital
-    companies = company_model.Company.query.filter(filter_company_type, filter_capital).offset(6490).all()
+    filter_company_type  = Company.company_type == '股份有限公司'
+    filter_capital       = Company.capital > capital
+    companies = Company.query.filter(filter_company_type, filter_capital).offset(6490).all()
     count = 0
     for company in companies:
         if company.business_code is not None:
@@ -262,7 +261,7 @@ def handle_message(event):
         if pattern.match(message):
             if len(message) == 8:
                 uniid = message
-                company = company_model.Company.find_by_uniid(uniid)
+                company = Company.find_by_uniid(uniid)
                 if company is None:
                     company_api_data = api.get_company_by_uniid(uniid)
                     if company_api_data:
@@ -275,7 +274,7 @@ def handle_message(event):
                 line_bot_api.reply_message(reply_token, TextSendMessage(text="給我8位數的數字，讓我以統一編號替您查詢。"))
         else:
             keyword = message
-            companies = company_model.Company.find_by_business_entity_like_search(keyword)
+            companies = Company.find_by_business_entity_like_search(keyword)
             if len(companies) == 0:
                 line_bot_api.reply_message(reply_token, (TextSendMessage(text="查無此公司。"),TextSendMessage(text="請再確認一次或試試統一編號查詢。")))
                 return
@@ -296,7 +295,7 @@ def handle_postback(event):
     ##### 回傳公司資料
     if action == "company":
         company_id = int(ts.split("&")[1])
-        company = company_model.Company.find_by_id(company_id)
+        company = Company.find_by_id(company_id)
         search_output(user_id, reply_token, company) # 輸出查詢結果
 
     ##### 2.2 我想買、我想賣 TODO
@@ -308,16 +307,18 @@ def handle_postback(event):
     ##### 2.3 加入自選股
     elif action == 'addFavorite':
         company_id = param[1]
-        favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
+        favorite_company = User_favorite_company.find_by_userid(user_id)
         if favorite_company is None: # 首次新增自選股，建立空資料
-            favorite_company = user_favorite_company_model.User_favorite_company(userid=user_id, company_ids='')
+            favorite_company = User_favorite_company(userid=user_id, company_ids='')
             db.session.add(favorite_company)
             try:
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
                 print(e)
-        if favorite_company.company_ids.find(company_id) < 0: # 未加入過此股
+
+        company_ids = favorite_company.company_ids.split(",")
+        if company_id not in company_ids: # 未加入過此股
             if len(favorite_company.company_ids) > 0:
                 favorite_company.company_ids += f',{company_id}'
             else: # 首次新增自選股
@@ -333,7 +334,7 @@ def handle_postback(event):
     ##### 2.4 移出自選股
     elif action == 'delFavorite':
         company_id = param[1]
-        favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
+        favorite_company = User_favorite_company.find_by_userid(user_id)
         favorite_company_list = favorite_company.company_ids.split(",")
         favorite_company_list.remove(str(company_id))
         favorite_company.company_ids = ",".join(favorite_company_list)
@@ -347,7 +348,7 @@ def handle_postback(event):
 
     ##### 2.5 檢視自選股
     elif action == 'viewFavorite':
-        favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
+        favorite_company = User_favorite_company.find_by_userid(user_id)
         if favorite_company is None:
             line_bot_api.reply_message(reply_token, TextSendMessage(text="您尚未加入自選股。"))
             return
@@ -356,10 +357,10 @@ def handle_postback(event):
     elif action == 'text':
         on_off = param[1]
         if param[2][0] == 'C':
-            group = group_model.Group.get_by_group_id(param[2])
+            group = Group.get_by_group_id(param[2])
             group.turn_on_off_text_reply(on_off)
         else:
-            user = user_model.User.get_by_user_id(param[2])
+            user = User.get_by_user_id(param[2])
             user.turn_on_off_text_reply(on_off)
         text = '文字訊息已關閉自動回覆。' if on_off == 'off' else '文字訊息已開啟自動回覆。'
         line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
@@ -367,10 +368,10 @@ def handle_postback(event):
     elif action == 'file':
         on_off = param[1]
         if param[2][0] == 'C':
-            group = group_model.Group.get_by_group_id(param[2])
+            group = Group.get_by_group_id(param[2])
             group.turn_on_off_file_reply(on_off)
         else:
-            user = user_model.User.get_by_user_id(param[2])
+            user = User.get_by_user_id(param[2])
             user.turn_on_off_file_reply(on_off)
         text = '文件訊息已關閉自動儲存。' if on_off == 'off' else '文件訊息已開啟自動儲存。'
         line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
@@ -378,46 +379,29 @@ def handle_postback(event):
     elif action == 'image':
         on_off = param[1]
         if param[2][0] == 'C':
-            group = group_model.Group.get_by_group_id(param[2])
+            group = Group.get_by_group_id(param[2])
             group.turn_on_off_image_reply(on_off)
         else:
-            user = user_model.User.get_by_user_id(param[2])
+            user = User.get_by_user_id(param[2])
             user.turn_on_off_image_reply(on_off)
         text = '圖片訊息已關閉自動回覆。' if on_off == 'off' else '圖片訊息已開啟自動回覆。'
         line_bot_api.reply_message(reply_token, TextSendMessage(text=text))
 
-    ##### [棄用]: 登記事業並非系統所需
-    # 檢視產業鏈其他公司
-    # if action == 'industry_stream':
-    #     code = param[1]
-    #     if code == "-1":
-    #         line_bot_api.reply_message(reply_token, TextSendMessage(text="此功能施工中..."))
-    #         return
-    #     industry = industry_model.Industry.get_by_code(code)
-    #     results = company_model.Company.find_by_industry(code)
-    #     output_companies = []
-    #     # 優先找 1.未上市 2.有股價
-    #     for result in results:
-    #         stock_info = dataset_day_model.Dataset_day.find_by_company_name_like_search(result.business_entity)
-    #         if stock_info is not None:
-    #             output_companies.append(result)
-    #     multiple_result_output(reply_token, industry.name, output_companies)
-
     ##### 檢視產業鏈其他公司
     if action == 'business_stream':
         code = param[1]
-        business_code = business_code_model.Business_code.get_by_code(code)
+        business_code = Business_code.get_by_code(code)
         if business_code is None:
             line_bot_api.reply_message(reply_token, TextSendMessage(text="此功能施工中 :)"))
             return
-        companies = company_model.Company.find_by_business_code(code)
+        companies = Company.find_by_business_code(code)
         multiple_result_output(reply_token, business_code.name_ch, companies)
 
     ##### 查詢股價
     if action == 'dataset_day':
         dataset_day_id = param[1]
-        company_stock  = dataset_day_model.Dataset_day.find_by_id(dataset_day_id)
-        company        = company_model.Company.find_by_business_entity_like_search(company_stock.company_name.split("股份")[0])[0]
+        company_stock  = Dataset_day.find_by_id(dataset_day_id)
+        company        = Company.find_by_business_entity_like_search(company_stock.company_name.split("股份")[0])[0]
         company_stock_output(reply_token, user_id, company_stock, company)
 
     ##### 查詢新聞
@@ -480,8 +464,8 @@ def search_output(user_id, reply_token, company):
     TradeinfoFlexMessage = json.load(open('templates/tradeInfo_stock.json','r',encoding='utf-8'))
     ChoosingFlexMessage  = json.load(open('templates/choosing.json','r',encoding='utf-8'))
 
+    company_stock_info = Dataset_day.find_by_company_name_like_search(company.business_entity)
 
-    company_stock_info = dataset_day_model.Dataset_day.find_by_company_name_like_search(company.business_entity)
     if len(company_stock_info) < 1:
         BoxTop = TradeinfoFlexMessage['body']['contents'][0]
         BoxTop['contents'][0]['text'] = company.business_entity
@@ -493,15 +477,13 @@ def search_output(user_id, reply_token, company):
             "align": "center"
         }
         BoxTop['contents'].append(notFound)
-        # TradeinfoFlexMessage['body']['contents'].pop(4)
-        # TradeinfoFlexMessage['body']['contents'].pop(3)
         TradeinfoFlexMessage['body']['contents'].pop(1)
         
         # 產業鏈
         business_code = company.get_business_code()
-        business_code_info_1 = business_code_model.Business_code.get_by_code(business_code[0])
+        business_code_info_1 = Business_code.get_by_code(business_code[0])
         if len(business_code) > 1:
-            business_code_info_2 = business_code_model.Business_code.get_by_code(business_code[1])
+            business_code_info_2 = Business_code.get_by_code(business_code[1])
             if business_code_info_2 is not None:
                 TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
                 TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
@@ -511,13 +493,12 @@ def search_output(user_id, reply_token, company):
             TradeinfoFlexMessage['footer']['contents'][2]['contents'][1]['action']['data']  += f"&{business_code_info_1.code}"
             TradeinfoFlexMessage['footer']['contents'][2]['contents'][3]['action']['data']  += f"&{business_code_info_1.downstream if business_code_info_1.downstream else -1}"
         
-        
-
         # 自選股
         added_already = False
-        favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
+        favorite_company = User_favorite_company.find_by_userid(user_id)
         if favorite_company is not None:
-            if favorite_company.company_ids.find(str(company.id)) >= 0:
+            company_ids = favorite_company.company_ids.split(",")
+            if str(company.id) in company_ids:
                 added_already = True
         if added_already:
             TradeinfoFlexMessage["body"]["contents"][2]["action"]["label"] = "移出自選股"
@@ -618,7 +599,7 @@ def search_output(user_id, reply_token, company):
 # 輸出使用者自選股
 def favorite_output(reply_token, company_ids):
     FavoriteFlexMessage = json.load(open("templates/user_stock.json","r",encoding="utf-8"))
-    companies = company_model.Company.find_by_ids(company_ids)
+    companies = Company.find_by_ids(company_ids)
     for company in companies: # TODO 應該用 IN(code1, code2) 效率會比一直query好
         box = {
                 "type"  : "button",
@@ -646,7 +627,7 @@ def multiple_result_output(reply_token, keyword, companies): # 參數companies�
     moved   = []
     deleted = []
     for index, company in enumerate(companies):
-        result = dataset_day_model.Dataset_day.find_by_company_name_like_search(company.business_entity)
+        result = Dataset_day.find_by_company_name_like_search(company.business_entity)
         if len(result) > 0:
             moved.append(company)
             deleted.append(index)
@@ -736,9 +717,10 @@ def company_stock_output(reply_token, user_id, company_stock, company):
 
     # 自選股
     added_already = False
-    favorite_company = user_favorite_company_model.User_favorite_company.find_by_userid(user_id)
+    favorite_company = User_favorite_company.find_by_userid(user_id)
     if favorite_company is not None:
-        if favorite_company.company_ids.find(str(company.id)) >= 0:
+        company_ids = favorite_company.company_ids.split(",")
+        if str(company.id) in company_ids:
             added_already = True
     if added_already:
         TradeinfoFlexMessage["body"]["contents"][3]["action"]["label"] = "移出自選股"
@@ -748,10 +730,9 @@ def company_stock_output(reply_token, user_id, company_stock, company):
 
     # 產業鏈
     business_code = company.get_business_code()
-    print('\n bc:  ',business_code)
-    business_code_info_1 = business_code_model.Business_code.get_by_code(business_code[0])
+    business_code_info_1 = Business_code.get_by_code(business_code[0])
     if len(business_code) > 1:
-        business_code_info_2 = business_code_model.Business_code.get_by_code(business_code[1])
+        business_code_info_2 = Business_code.get_by_code(business_code[1])
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['label'] += f" - {business_code_info_2.name_ch}"
         TradeinfoFlexMessage['footer']['contents'][2]['contents'][2]['action']['data']  += f"&{business_code_info_2.code}"
     TradeinfoFlexMessage['footer']['contents'][2]['contents'][0]['action']['data']  += f"&{business_code_info_1.upstream if business_code_info_1.upstream else -1}"
@@ -769,12 +750,12 @@ def company_news_output(reply_token, user_id, keyword):
     NewsBoxSample = copy.deepcopy(NewsFlexMessage["body"]["contents"][2]) # 取出新聞BOX當模板
     NewsFlexMessage["body"]["contents"] = NewsFlexMessage["body"]["contents"][:1] # 移除年份、新聞BOX，現在只剩公司名稱BOX
 
-    check = company_news_model.Company_news.today_update_check_by_keyword(keyword)
+    check = Company_news.today_update_check_by_keyword(keyword)
     if len(check) < 1:
         line_bot_api.push_message(user_id,  TextSendMessage(text="替您蒐集新聞中，請稍後。"))
         parse_cnyesNews(keyword=keyword) # 爬蟲
 
-    company_news = company_news_model.Company_news.today_update_check_by_keyword(keyword)
+    company_news = Company_news.today_update_check_by_keyword(keyword)
 
     if company_news is None or len(company_news) < 1:
         NewsFlexMessage["body"]["contents"][0]["text"] = "新聞"
@@ -808,11 +789,12 @@ def company_news_output(reply_token, user_id, keyword):
 ### 從ronny api新增公司company
 def add_company(uniid, data):
     year = str(int(data['核准設立日期']['year']) - 1911)
-    company = company_model.Company(uniid = uniid,
+    company = Company(uniid = uniid,
         business_entity=data['公司名稱'],
         capital=data['實收資本額(元)'],
         establishment_date=year + str(data['核准設立日期']['month']) + str(data['核准設立日期']['day']),
-        company_type=data['財政部']['組織別名稱']
+        company_type=data['財政部']['組織別名稱'],
+        business_code=data['所營事業資料'][0][0]
         )
     company.save()
     company.update_business_code()
@@ -821,7 +803,7 @@ def add_company(uniid, data):
 
 # ### 從ronny api更新公司營業項目代碼
 # def update_company_business_code(capital=100000000):
-#     companies = company_model.Company.find_by_company_type('股份有限公司')
+#     companies = Company.find_by_company_type('股份有限公司')
 #     print('Count: ', len(companies))
 
 
