@@ -76,14 +76,19 @@ class User_favorite_company(db.Model):
 class Company(db.Model):
     __tablename__ = 'company'
 
-    id                 = db.Column(db.Integer, primary_key=True)
-    uniid              = db.Column(db.String, nullable=False)
-    top_uniid          = db.Column(db.String, nullable=True)
+    id                 = db.Column(db.Integer, primary_key=True, index=True)
+    uniid              = db.Column(db.String(10), nullable=False)
+    top_uniid          = db.Column(db.String(10), nullable=True)
     business_entity    = db.Column(db.String(225), nullable=False)
     capital            = db.Column(db.Integer, nullable=False)
-    establishment_date = db.Column(db.String, nullable=False)
-    company_type       = db.Column(db.String, nullable=False)
-    business_code      = db.Column(db.String(10), nullable=False)
+    establishment_date = db.Column(db.String(30), nullable=False)
+    company_type       = db.Column(db.String(30), nullable=False)
+    business_code      = db.Column(db.TEXT, nullable=True)
+    company_news       = db.relationship(
+        'Company_news',
+        backref='company', # ref 可以讓我們使用 Company_news.company 進行對 company 操作
+        lazy='dynamic' # 有使用才載入，提昇效能
+    )
 
     def __init__(self, business_entity, capital, establishment_date, company_type, business_code='', **kwargs) -> None:
         super(Company, self).__init__(**kwargs)
@@ -233,12 +238,12 @@ class Business_code(db.Model):
     __tablename__ = 'business_code'
 
     id         = db.Column(db.Integer, primary_key=True)
-    code       = db.Column(db.String, nullable=False)
-    name_ch    = db.Column(db.String, nullable=True)
-    name_en    = db.Column(db.String, nullable=True)
+    code       = db.Column(db.String(45), nullable=False)
+    name_ch    = db.Column(db.String(45), nullable=True)
+    name_en    = db.Column(db.String(45), nullable=True)
     definition = db.Column(db.Text, nullable=True)
-    upstream   = db.Column(db.String, nullable=True)
-    downstream = db.Column(db.String, nullable=True)
+    upstream   = db.Column(db.String(45), nullable=True)
+    downstream = db.Column(db.String(45), nullable=True)
 
     def __repr__(self):
         return '<Business_code %r  %r %r>' % (self.id, self.code, self.name_ch)
@@ -260,14 +265,14 @@ class Business_code(db.Model):
 class Company_news(db.Model):
     __tablename__ = 'company_news'
 
-    id         = db.Column(db.Integer, primary_key=True)
-    company_id = db.Column(db.String, nullable=False)
-    company_business_entity = db.Column(db.String, nullable=True)
-    keyword      = db.Column(db.String, nullable=False)
-    news_title   = db.Column(db.Text, nullable=True)
+    id           = db.Column(db.Integer, primary_key=True)
+    company_id   = db.Column(db.Integer, db.ForeignKey('company.id'))
+    company_business_entity = db.Column(db.String(45), nullable=True)
+    keyword      = db.Column(db.String(15), nullable=False)
+    news_title   = db.Column(db.String(400), nullable=True)
     news_content = db.Column(db.Text, nullable=True)
-    news_url     = db.Column(db.String, nullable=False)
-    news_date    = db.Column(db.Date, nullable=True)
+    news_url     = db.Column(db.String(225), nullable=False)
+    news_date    = db.Column(db.String(45), nullable=True)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow().replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"))
 
     def save(self):
