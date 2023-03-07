@@ -96,11 +96,11 @@ def search_stream():
         return jsonify({"result": "NOT YES"})
 
 
-@app.route("/get_industries", methods=['GET'])
-def get_industries():
-    industries = industry_model.Industry.query.limit(100).all()
-    json_industries = json.dumps(industries)
-    return json_industries
+# @app.route("/get_industries", methods=['GET'])
+# def get_industries():
+#     industries = industry_model.Industry.query.limit(100).all()
+#     json_industries = json.dumps(industries)
+#     return json_industries
 
 ### 從ronny api更新公司營業項目代碼
 @app.route("/update_busienss_code/<int:capital>", methods=['GET'])

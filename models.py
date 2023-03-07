@@ -80,7 +80,7 @@ class Company(db.Model):
     uniid              = db.Column(db.String(10), nullable=False)
     top_uniid          = db.Column(db.String(10), nullable=True)
     business_entity    = db.Column(db.String(225), nullable=False)
-    capital            = db.Column(db.Integer, nullable=False)
+    capital            = db.Column(db.String(30), nullable=False)
     establishment_date = db.Column(db.String(30), nullable=False)
     company_type       = db.Column(db.String(30), nullable=False)
     business_code      = db.Column(db.TEXT, nullable=True)
