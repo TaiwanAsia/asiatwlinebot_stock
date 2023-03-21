@@ -1,0 +1,42 @@
+{
+  "type": "bubble",
+  "size": "kilo",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "hello, world",
+        "contents": [
+          {
+            "type": "span",
+            "text": "hello, world",
+            "color": "#5076eb",
+            "size": "lg",
+            "weight": "bold"
+          }
+        ],
+        "align": "center"
+      }
+    ]
+  },
+  "hero": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "image",
+        "url": "https://i.imgur.com/ArRAwIt.png",
+        "size": "full"
+      }
+    ],
+    "height": "100px",
+    "justifyContent": "center"
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": []
+  }
+}
