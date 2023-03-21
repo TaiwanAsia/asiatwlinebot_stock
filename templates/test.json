@@ -1,0 +1,68 @@
+{
+  "type": "bubble",
+  "hero": {
+    "type": "image",
+    "url": "https://i.imgur.com/Gop5J5D.png",
+    "size": "xxl"
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/IVBGaCU.png"
+          },
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/IVBGaCU.png"
+          },
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/IVBGaCU.png"
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/1Z61R1f.png"
+          },
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/1Z61R1f.png"
+          },
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/1Z61R1f.png"
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/REcIyPY.png"
+          },
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/REcIyPY.png"
+          },
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/REcIyPY.png"
+          }
+        ]
+      }
+    ]
+  }
+}

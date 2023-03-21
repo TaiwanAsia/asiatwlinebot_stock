@@ -11,21 +11,30 @@ from modules.logging import setup_logging
 import logging
 from common import check_chatroom_uploads_folder, get_user, get_group, add_log
 from flask_migrate import Migrate
+import config
+from config import cursor
 
 
 app = Flask(__name__)
 
+
+
+# Flask settings
 UPLOAD_FOLDER = "./uploads/"
 ALLOWED_EXTENSIONS = set(['csv'])
-
 app.config['UPLOAD_FOLDER']      = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = 300 * 1024 * 1024  # 300MB
 app.config['JSON_AS_ASCII']      = False # 避免中文亂碼
 
-# 匯入設定
-import config
+
+
+
+# Line Messaging API
 line_bot_api = LineBotApi(config.line_bot_api)
 handler = WebhookHandler(config.handler)
+
+
+# MySQL
 app.config['SQLALCHEMY_DATABASE_URI'] = config.app_config
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # app.config['SQLALCHEMY_ECHO'] = True
@@ -36,14 +45,21 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 1
 }
 
+
+# db initiate
 db.init_app(app)
 Migrate(app, db)
 
 
+
+# logging
 WeblogDir = 'web'
 WebloggerName = WeblogDir+'allLogger'
 setup_logging(WeblogDir)
 Weblogger = logging.getLogger(WebloggerName)
+
+
+
 
 
 
@@ -251,6 +267,16 @@ def handle_message(event):
         )))
         return
 
+    if message == 't':
+        FlexMessage = json.load(open('templates/test.json','r',encoding='utf-8'))
+        line_bot_api.reply_message(reply_token, FlexSendMessage('Testing', FlexMessage))
+        return
+
+    if message == 'i':
+        FlexMessage = json.load(open('templates/test_company_info.json','r',encoding='utf-8'))
+        line_bot_api.reply_message(reply_token, FlexSendMessage('Testing', FlexMessage))
+        return
+
 
     if chatroom.text_reply == 'off':
         return
@@ -404,11 +430,22 @@ def handle_postback(event):
         company        = Company.find_by_business_entity_like_search(company_stock.company_name.split("股份")[0])[0]
         company_stock_output(reply_token, user_id, company_stock, company)
 
-    ##### 查詢新聞
+    ##### 查詢新聞-關鍵字
     if action == 'company_news':
         keyword = param[1]
         company_news_output(reply_token, user_id, keyword)
-            
+
+    ##### 查詢新聞-LineBase
+    if action == 'company_news_linebase':
+        keyword = param[1]
+        company_news_output_fullname(reply_token, keyword)
+
+    if action == 'news':
+        pid = param[1]
+        company_name = param[2]
+        company_news_content(reply_token, pid, company_name)
+        
+
 
 
 ######### 以下放多次使用的 def #########
@@ -552,7 +589,7 @@ def search_output(user_id, reply_token, company):
         "action": {
             "type": "postback",
             "label": f"新聞：{company_name}",
-            "data": f"company_news&{company_name}",
+            "data": f"company_news_linebase&{company.business_entity}",
             "displayText": f"{company_name}新聞"
         }
     }
@@ -742,7 +779,7 @@ def company_stock_output(reply_token, user_id, company_stock, company):
     line_bot_api.reply_message(reply_token, FlexSendMessage('Trade Info', TradeinfoFlexMessage))
 
 
-### 輸出公司新聞
+### 輸出關鍵字新聞
 def company_news_output(reply_token, user_id, keyword):
 
     NewsFlexMessage = json.load(open("templates/company_news.json","r",encoding="utf-8"))
@@ -784,6 +821,45 @@ def company_news_output(reply_token, user_id, keyword):
             NewsFlexMessage["body"]["contents"][0]["text"] = company_news[0].keyword + " - 新聞"
 
     line_bot_api.reply_message(reply_token, FlexSendMessage('Trade Info', NewsFlexMessage))
+
+
+
+### 輸出公司新聞
+def company_news_output_fullname(reply_token, keyword):
+    NewsMessage = json.load(open("templates/company_news_LineBase.json","r",encoding="utf-8"))
+    cursor.execute(f"SELECT TOP (1) * FROM LineBase.dbo.TB_Company WHERE FullName = '{keyword}';")
+    row = cursor.fetchone()
+    if row is None:
+        line_bot_api.reply_message(reply_token, TextSendMessage(text="無近期資料。"))
+        return
+    NewsMessage["header"]["contents"][0]["contents"][0]["text"] = keyword.split("股份")[0]
+    cursor.execute(f"SELECT TOP (10) * FROM LineBase.dbo.TB_CompanyNews_TPEPO WHERE CompanyID = {row['CompanyID']} ORDER BY Date DESC")
+    for row in cursor:
+        box = NewsMessage["body"]["contents"]
+        item = {
+            "type": "button",
+            "action": {
+                "type": "postback",
+                "label": f"{row['Title']}",
+                "data": f"news&{row['PID']}&{keyword}",
+                "displayText": "讀取新聞"
+            }
+        }
+        box.append(item)
+    line_bot_api.reply_message(reply_token, FlexSendMessage('News', NewsMessage))
+
+
+### 輸出公司新聞 - 內容
+def company_news_content(reply_token, pid, company_name):
+    NewsMessage = json.load(open("templates/company_news_content_LineBase.json","r",encoding="utf-8"))
+    cursor.execute(f"SELECT TOP (1) * FROM LineBase.dbo.TB_CompanyNews_TPEPO WHERE PID = {pid};")
+    row = cursor.fetchone()
+    NewsMessage["header"]["contents"][0]["contents"][0]["text"] = company_name.split("股份")[0]
+    NewsMessage["body"]["contents"][0]["contents"][0]["text"] = row['Title']
+    NewsMessage["body"]["contents"][1]["text"] = str(row['Date']).split(" ")[0]
+    NewsMessage["body"]["contents"][2]["text"] = "　　"+row['Data'].replace("<br>", "\n")
+    line_bot_api.reply_message(reply_token, FlexSendMessage('News', NewsMessage))
+
 
 
 ### 從ronny api新增公司company

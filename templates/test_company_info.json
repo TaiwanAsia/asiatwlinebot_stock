@@ -1,0 +1,136 @@
+{
+    "type": "bubble",
+    "hero": {
+      "type": "image",
+      "url": "https://i.imgur.com/Y4IVs4a.png",
+      "size": "full",
+      "aspectMode": "cover",
+      "action": {
+        "type": "uri",
+        "uri": "http://linecorp.com/"
+      },
+      "aspectRatio": "10:4.2"
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "text",
+          "weight": "bold",
+          "size": "lg",
+          "align": "center",
+          "color": "#d92652",
+          "margin": "md",
+          "contents": [
+            {
+              "type": "span",
+              "text": "公司查詢",
+              "size": "22px"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "統一編號",
+          "offsetTop": "md",
+          "size": "md",
+          "margin": "md"
+        },
+        {
+          "type": "text",
+          "text": "股票代號",
+          "size": "md",
+          "margin": "md",
+          "offsetTop": "lg"
+        },
+        {
+          "type": "separator",
+          "margin": "xxl"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/r9NfsMO.png",
+              "position": "absolute",
+              "size": "3xl",
+              "action": {
+                "type": "message",
+                "label": "action1",
+                "text": "hello1"
+              }
+            }
+          ],
+          "height": "75px",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "offsetTop": "15px"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/KnZaiIK.png",
+              "position": "absolute",
+              "size": "3xl",
+              "action": {
+                "type": "message",
+                "label": "action1",
+                "text": "hello1"
+              },
+              "offsetStart": "30px"
+            }
+          ],
+          "height": "75px",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "offsetTop": "35px"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/BOTOmVc.png",
+              "position": "absolute",
+              "size": "3xl",
+              "action": {
+                "type": "message",
+                "label": "action1",
+                "text": "hello1"
+              },
+              "offsetStart": "30px"
+            }
+          ],
+          "height": "75px",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "offsetTop": "35px"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/kIXJqb4.png",
+              "size": "xxl",
+              "offsetStart": "15px",
+              "offsetTop": "15px"
+            }
+          ],
+          "height": "75px",
+          "justifyContent": "center",
+          "alignItems": "flex-end",
+          "offsetTop": "20px"
+        }
+      ],
+      "paddingTop": "5px"
+    }
+  }
