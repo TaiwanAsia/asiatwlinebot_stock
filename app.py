@@ -167,65 +167,65 @@ def callback():
         abort(400)
     return 'OK'
 
-# Message event: File處理
-@handler.add(MessageEvent, message=FileMessage)
-def handler_message(event):
-    user = get_user(event.source.user_id)
-    if event.source.type == 'group':
-        group = get_group(event.source.group_id)
-        chatroom    = group
-        chatroom_id = group.group_id
-    else:
-        chatroom    = user
-        chatroom_id = user.user_id
+# # Message event: File處理
+# @handler.add(MessageEvent, message=FileMessage)
+# def handler_message(event):
+#     user = get_user(event.source.user_id)
+#     if event.source.type == 'group':
+#         group = get_group(event.source.group_id)
+#         chatroom    = group
+#         chatroom_id = group.group_id
+#     else:
+#         chatroom    = user
+#         chatroom_id = user.user_id
         
-    if chatroom.file_reply == 'off':
-        return
-    else:
-        add_log(chatroom, 'upload file', str(event.message))
-        content = line_bot_api.get_message_content(event.message.id)
-        check_chatroom_uploads_folder(chatroom_id)
-        path = './uploads/' + chatroom_id + '/' + event.message.file_name
-        if os.path.exists(path):
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="此檔名已存在。"))
-            raise FileExistsError("此檔名已存在。")
-        try:
-            with open(path, 'wb') as fd:
-                for chunk in content.iter_content():
-                    fd.write(chunk)
-        except Exception as e:
-            print('發生錯誤', e)
-        finally:
-            print("儲存結束")
-        return
+#     if chatroom.file_reply == 'off':
+#         return
+#     else:
+#         add_log(chatroom, 'upload file', str(event.message))
+#         content = line_bot_api.get_message_content(event.message.id)
+#         check_chatroom_uploads_folder(chatroom_id)
+#         path = './uploads/' + chatroom_id + '/' + event.message.file_name
+#         if os.path.exists(path):
+#             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="此檔名已存在。"))
+#             raise FileExistsError("此檔名已存在。")
+#         try:
+#             with open(path, 'wb') as fd:
+#                 for chunk in content.iter_content():
+#                     fd.write(chunk)
+#         except Exception as e:
+#             print('發生錯誤', e)
+#         finally:
+#             print("儲存結束")
+#         return
 
-# Message event: Image處理
-@handler.add(MessageEvent, message=ImageMessage)
-def handle_message(event):
-    user = get_user(event.source.user_id)
-    if event.source.type == 'group':
-        group = get_group(event.source.group_id)
-        chatroom    = group
-        chatroom_id = group.group_id
-    else:
-        chatroom    = user
-        chatroom_id = user.user_id
-    if chatroom.file_reply == 'off':
-        return
-    else:
-        add_log(chatroom, 'upload file', str(event.message))
-        content = line_bot_api.get_message_content(event.message.id)
-        check_chatroom_uploads_folder(chatroom_id)
-        path = './uploads/' + chatroom_id + '/' + event.message.id + '.png'
-        try:
-            with open(path, 'wb') as fd:
-                for chunk in content.iter_content():
-                    fd.write(chunk)
-        except Exception as e:
-            print('發生錯誤', e)
-        finally:
-            print("儲存結束")
-        return
+# # Message event: Image處理
+# @handler.add(MessageEvent, message=ImageMessage)
+# def handle_message(event):
+#     user = get_user(event.source.user_id)
+#     if event.source.type == 'group':
+#         group = get_group(event.source.group_id)
+#         chatroom    = group
+#         chatroom_id = group.group_id
+#     else:
+#         chatroom    = user
+#         chatroom_id = user.user_id
+#     if chatroom.file_reply == 'off':
+#         return
+#     else:
+#         add_log(chatroom, 'upload file', str(event.message))
+#         content = line_bot_api.get_message_content(event.message.id)
+#         check_chatroom_uploads_folder(chatroom_id)
+#         path = './uploads/' + chatroom_id + '/' + event.message.id + '.png'
+#         try:
+#             with open(path, 'wb') as fd:
+#                 for chunk in content.iter_content():
+#                     fd.write(chunk)
+#         except Exception as e:
+#             print('發生錯誤', e)
+#         finally:
+#             print("儲存結束")
+#         return
 
 
 # Message event: Text處理
@@ -299,6 +299,7 @@ def handle_message(event):
             else:
                 line_bot_api.reply_message(reply_token, TextSendMessage(text="給我8位數的數字，讓我以統一編號替您查詢。"))
         else:
+            print("關鍵字查詢中...")
             keyword = message
             companies = Company.find_by_business_entity_like_search(keyword)
             if len(companies) == 0:
@@ -469,28 +470,16 @@ def search_output(user_id, reply_token, company):
 
     #
     # I.基本資料
-    FlexMessage = json.load(open('templates/company_info.json','r',encoding='utf-8'))
+    FlexMessage = json.load(open('templates/p2.json','r',encoding='utf-8'))
 
-    FlexMessage['body']['contents'][0]['text'] = f"{company.business_entity}"
+    FlexMessage['body']['contents'][0]['contents'][0]['text'] = f"{company.business_entity}"
     FlexMessage['body']['contents'][1]['text'] += f"     {company.uniid}"
-    # FlexMessage['body']['contents'][2]['text'] += f"     {company_code}"
-    elements = FlexMessage['body']['contents'][3]['contents']
-    for element in elements:
-        ele_type     = element['type']
-        if ele_type == 'button':
-            action_type  = element['action']['type']
-            action_label = element['action']['label']
-            if action_type == 'uri':
-                if action_label == '公司基本資料':
-                    element['action']['uri'] = str(element['action']['uri']) + f"{company.uniid}"
-                elif action_label == '公司關係圖':
-                    element['action']['uri'] = str(element['action']['uri']) + f"{company.uniid}" + "&openExternalBrowser=1"
-                elif action_label == '股權異動查詢':
-                    pass
-                # else:
-                #     element['action']['uri'] = str(element['action']['uri']) + f"{company_code}"
-            if action_type == 'postback':
-                element['action']['data'] = str(element['action']['data']) + f"{company.business_entity}&{company.uniid}"
+    FlexMessage['body']['contents'][2]['contents'][0]['text'] += f"     未上市"
+    # FlexMessage['body']['contents'][3] 是 separator
+    FlexMessage['body']['contents'][4]['action']['uri'] += f"{company.uniid}"
+    FlexMessage['body']['contents'][5]['action']['uri'] += f"{company.uniid}" + "&openExternalBrowser=1"
+    FlexMessage['body']['contents'][6]['action']['uri'] += 'test'
+
     CarouselMessage['contents'].append(FlexMessage) # 放入Carousel
 
 
@@ -656,8 +645,8 @@ def favorite_output(reply_token, company_ids):
 def multiple_result_output(reply_token, keyword, companies): # 參數companies使用company物件
 
     # 載入Flex template
-    FlexMessage = json.load(open('templates/template.json','r',encoding='utf-8'))
-    FlexMessage['contents'][0]['header']['contents'][0]['text'] = keyword
+    FlexMessage = json.load(open('templates/p1.json','r',encoding='utf-8'))
+
     candidates_list = []
 
     # 資料庫內有股價的提高顯示排序
@@ -676,14 +665,11 @@ def multiple_result_output(reply_token, keyword, companies): # 參數companies�
     for i in range(len(companies) if len(companies) <= 10 else 10):
         replace_string = ['股份', '有限', '分公司', '公司']
         company_name = companies[i].business_entity
+
         for s in replace_string:
             company_name = company_name.replace(s, "")
+
         if len(company_name) >= 10:
-            if i != 0:
-                seperator = {
-                    "type": "separator"
-                }
-                candidates_list.append(seperator)
             business_entity_1 = company_name[:10]
             business_entity_2 = company_name[10:]
             cand_1 =  {
@@ -718,7 +704,9 @@ def multiple_result_output(reply_token, keyword, companies): # 參數companies�
                     "data": f"company&{companies[i].id}"
                 }
             }
+
             candidates_list.append(cand)
+
     if len(companies) > 10:
         cand =  {
             "type": "text",
@@ -730,8 +718,10 @@ def multiple_result_output(reply_token, keyword, companies): # 參數companies�
             "decoration": "underline",
             "align": "center"
         }
+
         candidates_list.append(cand)
-    FlexMessage['contents'][0]['body']['contents'] = candidates_list
+
+    FlexMessage['body']['contents'] = candidates_list
     line_bot_api.reply_message(reply_token, FlexSendMessage('Candidates Info',FlexMessage))
 
 
