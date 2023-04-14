@@ -1,0 +1,53 @@
+{
+    "type": "bubble",
+    "direction": "ltr",
+    "header": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "image",
+          "url": "https://i.imgur.com/5xzkz15.png",
+          "size": "full"
+        }
+      ],
+      "width": "305px",
+      "maxHeight": "110px",
+      "justifyContent": "center",
+      "paddingStart": "10px",
+      "paddingEnd": "10px"
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "button",
+          "action": {
+            "type": "postback",
+            "label": " 公司1",
+            "data": "activity"
+          }
+        },
+        {
+          "type": "button",
+          "action": {
+            "type": "postback",
+            "label": " 公司2",
+            "data": "activity"
+          }
+        },
+        {
+          "type": "button",
+          "action": {
+            "type": "postback",
+            "label": " 公司3",
+            "data": "activity"
+          }
+        }
+      ],
+      "spacing": "none",
+      "margin": "none",
+      "offsetBottom": "none"
+    }
+  }

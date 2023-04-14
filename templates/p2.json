@@ -1,0 +1,148 @@
+{
+  "type": "bubble",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "image",
+        "url": "https://i.imgur.com/CqNeBbN.png",
+        "size": "full"
+      }
+    ],
+    "width": "305px",
+    "justifyContent": "center",
+    "paddingStart": "10px",
+    "paddingEnd": "10px",
+    "maxHeight": "110px"
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "weight": "bold",
+        "size": "lg",
+        "align": "center",
+        "color": "#d92652",
+        "margin": "md",
+        "contents": [
+          {
+            "type": "span",
+            "text": "公司查詢",
+            "size": "22px"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "text": "統一編號",
+        "offsetTop": "md",
+        "size": "md",
+        "margin": "md"
+      },
+      {
+        "type": "text",
+        "size": "md",
+        "margin": "md",
+        "offsetTop": "lg",
+        "contents": [
+          {
+            "type": "span",
+            "text": "市場別"
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "xxl"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/6wO47mY.png",
+            "position": "absolute",
+            "size": "full"
+          }
+        ],
+        "height": "75px",
+        "justifyContent": "center",
+        "alignItems": "center",
+        "offsetTop": "15px",
+        "offsetEnd": "5px",
+        "action": {
+          "type": "uri",
+          "label": "公司稅籍資料",
+          "uri": "https://company.g0v.ronny.tw/id/"
+        }
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/eEaw4wo.png",
+            "position": "absolute",
+            "size": "full"
+          }
+        ],
+        "height": "75px",
+        "justifyContent": "center",
+        "alignItems": "center",
+        "offsetTop": "15px",
+        "offsetEnd": "5px",
+        "action": {
+          "type": "uri",
+          "label": "公司樹狀關係圖",
+          "uri": "https://company-graph.g0v.ronny.tw/?id="
+        }
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/JWo3Oxw.png",
+            "position": "absolute",
+            "size": "full"
+          }
+        ],
+        "height": "75px",
+        "justifyContent": "center",
+        "alignItems": "center",
+        "offsetTop": "15px",
+        "offsetEnd": "5px",
+        "action": {
+          "type": "uri",
+          "label": "公司競爭對手",
+          "uri": "http://linecorp.com/"
+        }
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://i.imgur.com/I8817xd.png",
+            "size": "5xl",
+            "aspectMode": "cover",
+            "offsetStart": "50px"
+          }
+        ],
+        "height": "75px",
+        "justifyContent": "center",
+        "alignItems": "flex-end",
+        "offsetTop": "20px",
+        "offsetStart": "20px"
+      }
+    ],
+    "paddingTop": "5px"
+  }
+}
