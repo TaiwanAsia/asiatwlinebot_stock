@@ -12,7 +12,6 @@ import logging
 from common import check_chatroom_uploads_folder, get_user, get_group, add_log
 from flask_migrate import Migrate
 import config
-from config import cursor
 
 
 app = Flask(__name__)
@@ -439,12 +438,16 @@ def handle_postback(event):
     ##### 查詢新聞-LineBase
     if action == 'company_news_linebase':
         keyword = param[1]
-        company_news_output_fullname(reply_token, keyword)
+        # TODO
+        # 等MSSQL資料庫確認
+        # company_news_output_fullname(reply_token, keyword)
 
     if action == 'news':
         pid = param[1]
         company_name = param[2]
-        company_news_content(reply_token, pid, company_name)
+        # TODO
+        # 等MSSQL資料庫確認
+        # company_news_content(reply_token, pid, company_name)
         
 
 
@@ -900,7 +903,7 @@ if __name__ == "__main__":
     
 
     # 爬蟲執行時間
-    target_time = [13, 30]
+    target_time = [17, 15]
     
     _thread.start_new_thread(crawler, (target_time[0], target_time[1], db, debug_mode, app))
     port = int(os.environ.get('PORT', config.port))

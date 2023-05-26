@@ -6,6 +6,7 @@ from models import db, Dataset_day, Company_news
 from modules.logging import setup_logging
 import logging
 
+
 logDir = 'crawler'
 loggerName = logDir+'allLogger'
 setup_logging(logDir)
@@ -27,14 +28,17 @@ def crawler(target_hour, target_minute, db, debug_mode, app):
 # 未上市股價
 def parse_company_price(db, app):
     with app.app_context():
+        from sqlalchemy.sql import text
         try:
             sql = "TRUNCATE `linebot_stock`.`dataset_day`;" # Clear data
-            db.engine.execute(sql)
-            logger.info('Clear table `stock` Successfully.')
+            db.session.execute(text(sql))
+            logger.info('Clear table `dataset_day` Successfully.')
         except Exception as e:
             db.session.rollback()
-            print(e)
-            logger.error('Clear table `stock` Failed. ' + e)
+            logger.error('Clear table `dataset_day` Failed. ' + str(e))
+            print(f"\n ------------ 必富網熱門Top100 => 爬蟲失敗 ------------")
+            logger.info('------------ 必富網熱門Top100 => 爬蟲失敗 ------------')
+            return
         print(f"\n ------------ 爬蟲開始: 必富網熱門Top100 ------------")
         logger.info('------------ 爬蟲開始: 必富網熱門Top100 ------------')
         website_id = 1
