@@ -8,14 +8,19 @@
 
 ### 安裝 - Python
 
->建議使用Python3.7，並且將python安裝路徑加入到環境變數的PATH中
+>建議使用Python3.7↑，並且將python安裝路徑加入到環境變數的PATH中
 
-pip or pip3 下指令:
-`pip install -r requirements.txt`
+開啟命令提示字元後，pip or pip3 下指令:
+`pip install -r requirements.txt` 或 `pip3 install -r requirements.txt`
+
+另外安裝pymsql
+`pip install pymysql` 或 `pip3 install pymysql`
 
 ### 安裝 - MySQL
 
 Windows 載點 : [MySQL Windows Installer Donwload](https://dev.mysql.com/downloads/installer/)
+
+**[安裝教學](https://ithelp.ithome.com.tw/articles/10259766)** - 記得設定的密碼
 
 將 [sql](/database/linebot_stock.sql) 匯入至資料庫
 
@@ -25,29 +30,44 @@ Windows 載點 : [MySQL Windows Installer Donwload](https://dev.mysql.com/downlo
 
 ### 設定 - 程式
 
-手動複製 config.py.example，修改參數完成後，將檔名改為 config.py
+手動複製 config.py.example，修改參數完成後(可看[設定 - LINE])，將檔名改為 config.py
 
-### 設定 - 命令提示字元
+### 設定 - 架站
 
-開啟命令提示字元後，進入到 asialinebot_stock 資料夾。
+開啟命令提示字元後，進入到 asialinebot_stock 資料夾。如非臨時架站，則從Step 5開始
 
-1. 運行ngrok
+1. 臨時架站： 註冊並下載ngrok [官網](https://dashboard.ngrok.com/get-started/setup "ngrok")，將下載的 ngrok.exe 放入該 asiatwlinebot_stock 資料夾內
+
+2. 上一步註冊登入ngrok後，去Your Authtoken找到自己的token並複製
+
+3. 打開命令提示字元(進入到 asialinebot_stock 資料夾)，輸入
+`ngrok authtoken [你在第2步複製的token]`
+
+4. 運行ngrok
 `ngrok http 8888`
 
-2. 下指令:
-`py main.py 或 python3 main.py`
+5. 下指令:
+`py app.py` 或 `python3 app.py`
 
 ### 設定 - LINE
 
 你需要先到 LINE Developers 新建 Providers、Channels：
 
-1. 記下<font color=#0000FF>Channel ID</font>，填入上述所說config.py內
-2. 記下<font color=#0000FF>Channel secret</font>，填入上述所說config.py內
-3. <font color=red>Webhook URL</font> 填入 -> <https://你的域名/callback> (你的域名就是上個步驟運行ngrok後，顯示出的網址)
+1. 記下<font color=#0000FF>Channel ID</font>，填入上述 [設定 - 程式] 所說config.py內
+2. 記下<font color=#0000FF>Channel secret</font>，填入上述 [設定 - 程式] 所說config.py內
+3. <font color=red>Webhook URL</font> 填入 -> <https://你的域名/callback>。
+你的域名就是架站步驟4，運行ngrok後顯示出的網址，記得選https開頭的那個
+![選第二個網址](https://i.imgur.com/bA43inC.png)
+
+4. 如果遇到這行錯誤 ![cryptography](https://i.imgur.com/3BT0Wwd.png)
+如同安裝步驟，開啟命令提示字元，執行`pip install cryptography`
 
 -----
 
-## 範例
+## 設定範例
+![config.py](https://i.imgur.com/jcjChit.png)
+1. 為下載、安裝mysql時設定的密碼
+## 使用範例
 
 ![輸入中文](https://i.imgur.com/YIy3RKl.png)
 ![輸入統一編號](https://i.imgur.com/jV1dQ3T.png)
