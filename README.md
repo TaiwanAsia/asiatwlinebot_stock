@@ -2,9 +2,24 @@
 
 使用LINE Messaging-api 建立可查詢台股相關資訊的LINE機器人。
 
+* 下載
+* 安裝
+* 設定
+* 設定完成範例
+* 使用範例
+
 -----
 
-## 安裝
+## 1. 下載
+[Github連結](https://github.com/TaiwanAsia/asiatwlinebot_stock)
+
+![下載](https://i.imgur.com/sSIM0aY.png)
+
+下載後解壓縮至你要的目錄，我的是D:\git\，解壓縮後會是G:\git\asiatwlinebot_stock\
+
+-----
+
+## 2. 安裝
 
 ### 安裝 - Python
 
@@ -26,7 +41,7 @@ Windows 載點 : [MySQL Windows Installer Donwload](https://dev.mysql.com/downlo
 
 -----
 
-## 設定
+## 3. 設定
 
 ### 設定 - 程式
 
@@ -64,10 +79,10 @@ Windows 載點 : [MySQL Windows Installer Donwload](https://dev.mysql.com/downlo
 
 -----
 
-## 設定範例
+## 4. 設定完成範例
 ![config.py](https://i.imgur.com/jcjChit.png)
-1. 為下載、安裝mysql時設定的密碼
-## 使用範例
+圖中1處為下載、安裝mysql時設定的密碼
+## 5. 使用範例
 
 ![輸入中文](https://i.imgur.com/YIy3RKl.png)
 ![輸入統一編號](https://i.imgur.com/jV1dQ3T.png)
